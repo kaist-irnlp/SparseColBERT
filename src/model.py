@@ -24,6 +24,7 @@ class ColBERT(BertPreTrainedModel):
 
         self.bert = BertModel(config)
         self.linear = nn.Linear(config.hidden_size, dim, bias=False)
+        self.config = config
 
         self.init_weights()
 
@@ -139,6 +140,7 @@ class SparseColBERT(ColBERT):
         )
         self.linear = nn.Identity()
         self.sparse = WTAModel(wta_params)
+        self.is_sparse = True
 
     def _sparse_maxpool(self, T):
         T_sparse = []

@@ -54,12 +54,17 @@ class TrainReader:
 
 
 def manage_checkpoints(colbert, optimizer, batch_idx):
+    config = colbert.config
+    model_desc = f"colbert_hidden={config.hidden_size}_qlen={colbert.query_maxlen}_dlen={colbert.doc_maxlen}"
+    if hasattr(colbert, "sparse"):
+        model_desc += f"_sparse_n={colbert.n}_k={colbert.k}"
+
     if batch_idx % 2000 == 0:
-        save_checkpoint("colbert.dnn", 0, batch_idx, colbert, optimizer)
+        save_checkpoint(f"{model_desc}.dnn", 0, batch_idx, colbert, optimizer)
 
     if batch_idx in SAVED_CHECKPOINTS:
         save_checkpoint(
-            "colbert-" + str(batch_idx) + ".dnn", 0, batch_idx, colbert, optimizer
+            f"{model_desc}-" + str(batch_idx) + ".dnn", 0, batch_idx, colbert, optimizer
         )
 
 
@@ -100,11 +105,11 @@ def train(args):
 
     for batch_idx in tqdm(range(args.maxsteps)):
         Batch = reader.get_minibatch(args.bsize)
-    # for batch_idx, Batch in enumerate(tqdm(loader)):
-    #     if batch_idx > args.maxsteps:
-    #         print_message("#> Finish training at", batch_idx, "...\n\n")
-    #         break
-    #     Batch = [[q, pos, neg] for (q, pos, neg) in zip(Batch[0], Batch[1], Batch[2])]
+        # for batch_idx, Batch in enumerate(tqdm(loader)):
+        #     if batch_idx > args.maxsteps:
+        #         print_message("#> Finish training at", batch_idx, "...\n\n")
+        #         break
+        #     Batch = [[q, pos, neg] for (q, pos, neg) in zip(Batch[0], Batch[1], Batch[2])]
         Batch = sorted(Batch, key=lambda x: max(len(x[1]), len(x[2])))
 
         positive_score, negative_score = 0.0, 0.0
