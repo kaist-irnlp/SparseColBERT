@@ -1,35 +1,47 @@
 import enum
+import math
 import os
 import random
+from argparse import ArgumentParser
+
+import pandas as pd
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 from tqdm import tqdm
-import pandas as pd
-
-from argparse import ArgumentParser
 from transformers import AdamW
 
-from src.parameters import DEVICE, SAVED_CHECKPOINTS
-
 from src.model import ColBERT, SparseColBERT
+from src.parameters import DEVICE, SAVED_CHECKPOINTS
 from src.utils import batch, print_message, save_checkpoint
 
 
-class TrainDataset(Dataset):
+class TrainDataset(IterableDataset):
     def __init__(self, data_file):
         print_message("#> Training with the triples in", data_file, "...\n\n")
         if data_file.endswith(".parquet"):
-            self.data = pd.read_parquet(data_file)
+            self.data = pd.read_parquet(data_file).values.tolist()
         else:
-            self.data = pd.read_csv(data_file, sep="\t", names=["query", "pos", "neg"])
+            self.data = pd.read_csv(
+                data_file, sep="\t", names=["query", "pos", "neg"]
+            ).values.tolist()
 
-    def __len__(self) -> int:
+    def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, index: int):
-        row = self.data.iloc[index]
-        return row.tolist()
+    def __iter__(self):
+        worker_info = torch.utils.data.get_worker_info()
+        data = None
+        if worker_info is None:  # single-process data loading, return the full iterator
+            data = self.data
+        else:  # in a worker process
+            # split workload
+            per_worker = int(math.ceil(len(self.data) / float(worker_info.num_workers)))
+            worker_id = worker_info.id
+            start = worker_id * per_worker
+            end = min(start + per_worker, len(self.data))
+            data = self.data[start:end]
+        return iter(data)
 
 
 class TrainReader:
@@ -79,20 +91,20 @@ def train(args):
     optimizer.zero_grad()
     labels = torch.zeros(args.bsize, dtype=torch.long, device=DEVICE)
 
-    # reader = TrainReader(args.triples)
-    dset = TrainDataset(args.triples)
-    loader = DataLoader(dset, batch_size=args.bsize, num_workers=0, pin_memory=True)
+    reader = TrainReader(args.triples)
+    # dset = TrainDataset(args.triples)
+    # loader = DataLoader(dset, batch_size=args.bsize, num_workers=0, pin_memory=True)
     train_loss = 0.0
 
     PRINT_PERIOD = 100
 
-    # for batch_idx in tqdm(range(args.maxsteps)):
-    #     Batch = reader.get_minibatch(args.bsize)
-    for batch_idx, Batch in enumerate(tqdm(loader)):
-        if batch_idx > args.maxsteps:
-            print_message("#> Finish training at", batch_idx, "...\n\n")
-            break
-        Batch = [[q, pos, neg] for (q, pos, neg) in zip(Batch[0], Batch[1], Batch[2])]
+    for batch_idx in tqdm(range(args.maxsteps)):
+        Batch = reader.get_minibatch(args.bsize)
+    # for batch_idx, Batch in enumerate(tqdm(loader)):
+    #     if batch_idx > args.maxsteps:
+    #         print_message("#> Finish training at", batch_idx, "...\n\n")
+    #         break
+    #     Batch = [[q, pos, neg] for (q, pos, neg) in zip(Batch[0], Batch[1], Batch[2])]
         Batch = sorted(Batch, key=lambda x: max(len(x[1]), len(x[2])))
 
         positive_score, negative_score = 0.0, 0.0
