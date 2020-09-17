@@ -65,6 +65,8 @@ def manage_checkpoints(colbert, optimizer, batch_idx):
         n = "-".join([str(n) for n in colbert.n])
         k = "-".join([str(k) for k in colbert.k])
         model_desc += f"_sparse_n={n}_k={k}"
+    else:
+        model_desc += f"_dense"
 
     if batch_idx % 50000 == 0:
         save_checkpoint(
