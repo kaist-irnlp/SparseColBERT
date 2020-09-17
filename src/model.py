@@ -118,8 +118,8 @@ class SparseColBERT(ColBERT):
     ):
         super().__init__(config, query_maxlen, doc_maxlen, dim, similarity_metric)
         # modification
-        self.n = n
-        self.k = k
+        self.n = n if isinstance(n, list) else [n]
+        self.k = k if isinstance(k, list) else [k]
         self.dense_size = self.bert.embeddings.word_embeddings.weight.shape[1]
         wta_params = OmegaConf.create(
             {
