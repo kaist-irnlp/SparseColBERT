@@ -60,6 +60,7 @@ def train(args):
         Batch = reader.get_minibatch(args.bsize)
         Batch = sorted(Batch, key=lambda x: max(len(x[1]), len(x[2])))
 
+        positive_score, negative_score = 0.0, 0.0
         for B_idx in range(args.accumsteps):
             size = args.bsize // args.accumsteps
             B = Batch[B_idx * size : (B_idx + 1) * size]
@@ -75,14 +76,14 @@ def train(args):
                 round(colbert_out2.mean().item(), 2),
             )
 
-            if (B_idx % PRINT_PERIOD) == 0:
-                print(
-                    "#>>>   ",
-                    positive_score,
-                    negative_score,
-                    "\t\t|\t\t",
-                    positive_score - negative_score,
-                )
+            # if (B_idx % PRINT_PERIOD) == 0:
+            #     print(
+            #         "#>>>   ",
+            #         positive_score,
+            #         negative_score,
+            #         "\t\t|\t\t",
+            #         positive_score - negative_score,
+            #     )
 
             loss = criterion(out, labels[: out.size(0)])
             loss = loss / args.accumsteps
@@ -96,6 +97,16 @@ def train(args):
         optimizer.zero_grad()
 
         if (batch_idx % PRINT_PERIOD) == 0:
+            # score
+            print(
+                "#>>>   ",
+                positive_score,
+                negative_score,
+                "\t\t|\t\t",
+                positive_score - negative_score,
+            )
+
+            # loss
             print_message(batch_idx, train_loss / (batch_idx + 1))
 
         manage_checkpoints(colbert, optimizer, batch_idx + 1)
