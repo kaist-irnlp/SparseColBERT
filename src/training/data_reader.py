@@ -2,7 +2,9 @@ import os
 import random
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 from tqdm import tqdm
+import pandas as pd
 
 from argparse import ArgumentParser
 from transformers import AdamW
@@ -10,7 +12,20 @@ from transformers import AdamW
 from src.parameters import DEVICE, SAVED_CHECKPOINTS
 
 from src.model import ColBERT, SparseColBERT
-from src.utils import print_message, save_checkpoint
+from src.utils import batch, print_message, save_checkpoint
+
+
+class TrainDataset(Dataset):
+    def __init__(self, data_file):
+        print_message("#> Training with the triples in", data_file, "...\n\n")
+        self.data = pd.read_csv(data_file, sep="\t", names=["query", "pos", "neg"])
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __getitem__(self, index: int):
+        row = self.data.iloc[index]
+        return row.values
 
 
 class TrainReader:
@@ -51,13 +66,19 @@ def train(args):
     optimizer.zero_grad()
     labels = torch.zeros(args.bsize, dtype=torch.long, device=DEVICE)
 
-    reader = TrainReader(args.triples)
+    # reader = TrainReader(args.triples)
+    dset = TrainDataset(args.triples)
+    loader = DataLoader(dset, batch_size=args.bsize, num_workers=2, pin_memory=True)
     train_loss = 0.0
 
     PRINT_PERIOD = 100
 
-    for batch_idx in tqdm(range(args.maxsteps)):
-        Batch = reader.get_minibatch(args.bsize)
+    # for batch_idx in tqdm(range(args.maxsteps)):
+    #     Batch = reader.get_minibatch(args.bsize)
+    for batch_idx, Batch in tqdm(enumerate(loader)):
+        if batch_idx > args.maxsteps:
+            print_message("#> Finish training at", batch_idx, "...\n\n")
+            break
         Batch = sorted(Batch, key=lambda x: max(len(x[1]), len(x[2])))
 
         positive_score, negative_score = 0.0, 0.0
