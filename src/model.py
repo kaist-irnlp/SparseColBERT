@@ -92,7 +92,7 @@ class ColBERT(BertPreTrainedModel):
 
     def _encode(self, x, max_length):
         input_ids = self.tokenizer.encode(
-            x, add_special_tokens=True, max_length=max_length
+            x, add_special_tokens=True, max_length=max_length, truncation=True
         )
 
         padding_length = max_length - len(input_ids)
