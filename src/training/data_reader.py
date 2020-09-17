@@ -2,6 +2,7 @@ import os
 import random
 import torch
 import torch.nn as nn
+from tqdm import tqdm
 
 from argparse import ArgumentParser
 from transformers import AdamW
@@ -53,7 +54,9 @@ def train(args):
     reader = TrainReader(args.triples)
     train_loss = 0.0
 
-    for batch_idx in range(args.maxsteps):
+    PRINT_PERIOD = 100
+
+    for batch_idx in tqdm(range(args.maxsteps)):
         Batch = reader.get_minibatch(args.bsize)
         Batch = sorted(Batch, key=lambda x: max(len(x[1]), len(x[2])))
 
@@ -71,13 +74,15 @@ def train(args):
                 round(colbert_out1.mean().item(), 2),
                 round(colbert_out2.mean().item(), 2),
             )
-            print(
-                "#>>>   ",
-                positive_score,
-                negative_score,
-                "\t\t|\t\t",
-                positive_score - negative_score,
-            )
+
+            if (B_idx % PRINT_PERIOD) == 0:
+                print(
+                    "#>>>   ",
+                    positive_score,
+                    negative_score,
+                    "\t\t|\t\t",
+                    positive_score - negative_score,
+                )
 
             loss = criterion(out, labels[: out.size(0)])
             loss = loss / args.accumsteps
@@ -90,6 +95,7 @@ def train(args):
         optimizer.step()
         optimizer.zero_grad()
 
-        print_message(batch_idx, train_loss / (batch_idx + 1))
+        if (batch_idx % PRINT_PERIOD) == 0:
+            print_message(batch_idx, train_loss / (batch_idx + 1))
 
         manage_checkpoints(colbert, optimizer, batch_idx + 1)
