@@ -25,7 +25,7 @@ class TrainDataset(Dataset):
 
     def __getitem__(self, index: int):
         row = self.data.iloc[index]
-        return row.values
+        return row.tolist()
 
 
 class TrainReader:
