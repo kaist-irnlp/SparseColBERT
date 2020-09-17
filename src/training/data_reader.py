@@ -51,15 +51,24 @@ def manage_checkpoints(colbert, optimizer, batch_idx):
 
 
 def train(args):
-    colbert = SparseColBERT.from_pretrained(
-        "bert-base-uncased",
-        query_maxlen=args.query_maxlen,
-        doc_maxlen=args.doc_maxlen,
-        n=args.n,
-        k=args.k,
-        dim=args.dim,
-        similarity_metric=args.similarity,
-    )
+    if args.use_sparse:
+        colbert = SparseColBERT.from_pretrained(
+            "bert-base-uncased",
+            query_maxlen=args.query_maxlen,
+            doc_maxlen=args.doc_maxlen,
+            n=args.n,
+            k=args.k,
+            dim=args.dim,
+            similarity_metric=args.similarity,
+        )
+    else:
+        colbert = ColBERT.from_pretrained(
+            "bert-base-uncased",
+            query_maxlen=args.query_maxlen,
+            doc_maxlen=args.doc_maxlen,
+            dim=args.dim,
+            similarity_metric=args.similarity,
+        )
     colbert = colbert.to(DEVICE)
     colbert.train()
 
