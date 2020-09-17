@@ -1,3 +1,4 @@
+import enum
 import os
 import random
 import torch
@@ -87,10 +88,11 @@ def train(args):
 
     # for batch_idx in tqdm(range(args.maxsteps)):
     #     Batch = reader.get_minibatch(args.bsize)
-    for batch_idx, Batch in tqdm(enumerate(loader)):
+    for batch_idx, Batch in enumerate(tqdm(loader)):
         if batch_idx > args.maxsteps:
             print_message("#> Finish training at", batch_idx, "...\n\n")
             break
+        Batch = [[q, pos, neg] for (q, pos, neg) in zip(Batch[0], Batch[1], Batch[2])]
         Batch = sorted(Batch, key=lambda x: max(len(x[1]), len(x[2])))
 
         positive_score, negative_score = 0.0, 0.0
