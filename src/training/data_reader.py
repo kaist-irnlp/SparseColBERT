@@ -18,7 +18,10 @@ from src.utils import batch, print_message, save_checkpoint
 class TrainDataset(Dataset):
     def __init__(self, data_file):
         print_message("#> Training with the triples in", data_file, "...\n\n")
-        self.data = pd.read_csv(data_file, sep="\t", names=["query", "pos", "neg"])
+        if data_file.endswith(".parquet"):
+            self.data = pd.read_parquet(data_file)
+        else:
+            self.data = pd.read_csv(data_file, sep="\t", names=["query", "pos", "neg"])
 
     def __len__(self) -> int:
         return len(self.data)
