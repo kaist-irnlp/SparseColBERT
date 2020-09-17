@@ -3,6 +3,7 @@ import math
 import os
 import random
 from argparse import ArgumentParser
+from pathlib import Path
 
 import pandas as pd
 import torch
@@ -53,20 +54,30 @@ class TrainReader:
         return [self.reader.readline().split("\t") for _ in range(bsize)]
 
 
+checkpoint_dir = Path("checkpoints")
+checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+
 def manage_checkpoints(colbert, optimizer, batch_idx):
     config = colbert.config
     model_desc = f"colbert_hidden={config.hidden_size}_qlen={colbert.query_maxlen}_dlen={colbert.doc_maxlen}"
     if hasattr(colbert, "sparse"):
-        n = "-".join(colbert.n)
-        k = "-".join(colbert.k)
+        n = "-".join([str(n) for n in colbert.n])
+        k = "-".join([str(k) for k in colbert.k])
         model_desc += f"_sparse_n={n}_k={k}"
 
-    if batch_idx % 10000 == 0:
-        save_checkpoint(f"{model_desc}.dnn", 0, batch_idx, colbert, optimizer)
+    if batch_idx % 50000 == 0:
+        save_checkpoint(
+            checkpoint_dir / f"{model_desc}.last.dnn", 0, batch_idx, colbert, optimizer
+        )
 
     if batch_idx in SAVED_CHECKPOINTS:
         save_checkpoint(
-            f"{model_desc}-" + str(batch_idx) + ".dnn", 0, batch_idx, colbert, optimizer
+            checkpoint_dir / (f"{model_desc}.{batch_idx}.dnn"),
+            0,
+            batch_idx,
+            colbert,
+            optimizer,
         )
 
 
