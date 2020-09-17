@@ -59,7 +59,7 @@ def manage_checkpoints(colbert, optimizer, batch_idx):
     if hasattr(colbert, "sparse"):
         model_desc += f"_sparse_n={colbert.n}_k={colbert.k}"
 
-    if batch_idx % 2000 == 0:
+    if batch_idx % 2 == 0:
         save_checkpoint(f"{model_desc}.dnn", 0, batch_idx, colbert, optimizer)
 
     if batch_idx in SAVED_CHECKPOINTS:
