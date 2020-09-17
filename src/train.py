@@ -19,8 +19,8 @@ def main():
 
     parser.add_argument("--lr", dest="lr", default=3e-06, type=float)
     parser.add_argument("--maxsteps", dest="maxsteps", default=400000, type=int)
-    parser.add_argument("--bsize", dest="bsize", default=32, type=int)
-    parser.add_argument("--accum", dest="accumsteps", default=2, type=int)
+    parser.add_argument("--bsize", dest="bsize", default=16, type=int)
+    parser.add_argument("--accum", dest="accumsteps", default=4, type=int)
 
     parser.add_argument("--data_dir", dest="data_dir", default=DEFAULT_DATA_DIR)
     parser.add_argument("--triples", dest="triples", default="triples.train.small.tsv")
