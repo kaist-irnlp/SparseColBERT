@@ -137,16 +137,22 @@ class SparseColBERT(ColBERT):
                 },
             }
         )
-        self.linear = WTAModel(wta_params)
+        self.linear = nn.Identity()
+        self.sparse = WTAModel(wta_params)
 
     def _sparse_maxpool(self, T):
-        T_max = torch.max(T, dim=1).values
-        return T_max
+        T_sparse = []
+        for t in torch.unbind(T):
+            t_sparse = torch.max(self.sparse(t), dim=0).values
+            T_sparse.append(t_sparse)
+        T_sparse = torch.stack(T_sparse)
+        return T_sparse
 
     # TODO: need changes
     def forward(self, Q, D):
-        Q_sp, D_sp = self.query(Q), self.doc(D)
-        Q_sp, D_sp = self._sparse_maxpool(Q_sp), self._sparse_maxpool(D_sp)
+        Q_sp, D_sp = self._sparse_maxpool(self.query(Q)), self._sparse_maxpool(
+            self.doc(D)
+        )
         return self.score(Q_sp, D_sp)
 
     # TODO: need changes

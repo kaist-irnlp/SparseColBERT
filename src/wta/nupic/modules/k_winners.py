@@ -263,7 +263,7 @@ class KWinners(KWinnersBase):
         period = min(self.duty_cycle_period, self.learning_iterations)
         self.duty_cycle.mul_(period - batch_size)
         reduce_dims = tuple(range(len(x.shape)))
-        self.duty_cycle.add_((x > 0).mean(dim=reduce_dims, dtype=torch.float))
+        self.duty_cycle.add_((x > 0).sum(dim=reduce_dims, dtype=torch.float))
         self.duty_cycle.div_(period)
 
     def extra_repr(self):

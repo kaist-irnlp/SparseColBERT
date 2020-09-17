@@ -21,8 +21,9 @@
 import torch
 
 
-def kwinners(x, duty_cycles, k, boost_strength, break_ties=False, relu=False,
-             inplace=False):
+def kwinners(
+    x, duty_cycles, k, boost_strength, break_ties=False, relu=False, inplace=False
+):
     """
     A simple K-winner take all function for creating layers with sparse output.
 
@@ -95,15 +96,15 @@ def kwinners(x, duty_cycles, k, boost_strength, break_ties=False, relu=False,
     boosted = boost_activations(x, duty_cycles, boost_strength)
 
     if break_ties:
+
         indices = boosted.topk(k=k, dim=1, sorted=False)[1]
         off_mask = torch.ones_like(boosted, dtype=torch.bool)
         off_mask.scatter_(1, indices, False)
 
         if relu:
-            off_mask |= (boosted <= 0)
+            off_mask |= boosted <= 0
     else:
-        threshold = boosted.kthvalue(x.shape[1] - k + 1, dim=1,
-                                     keepdim=True)[0]
+        threshold = boosted.kthvalue(x.shape[1] - k + 1, dim=1, keepdim=True)[0]
 
         if relu:
             threshold.clamp_(min=0)
@@ -115,8 +116,16 @@ def kwinners(x, duty_cycles, k, boost_strength, break_ties=False, relu=False,
         return x.masked_fill(off_mask, 0)
 
 
-def kwinners2d(x, duty_cycles, k, boost_strength, local=True, break_ties=False,
-               relu=False, inplace=False):
+def kwinners2d(
+    x,
+    duty_cycles,
+    k,
+    boost_strength,
+    local=True,
+    break_ties=False,
+    relu=False,
+    inplace=False,
+):
     """
     A K-winner take all function for creating Conv2d layers with sparse output.
 
@@ -179,14 +188,14 @@ def kwinners2d(x, duty_cycles, k, boost_strength, local=True, break_ties=False,
             off_mask = off_mask.view(x.shape)
 
         if relu:
-            off_mask |= (boosted <= 0)
+            off_mask |= boosted <= 0
     else:
         if local:
-            threshold = boosted.kthvalue(x.shape[1] - k + 1, dim=1,
-                                         keepdim=True)[0]
+            threshold = boosted.kthvalue(x.shape[1] - k + 1, dim=1, keepdim=True)[0]
         else:
             threshold = boosted.view(x.shape[0], -1).kthvalue(
-                x.shape[1] * x.shape[2] * x.shape[3] - k + 1, dim=1)[0]
+                x.shape[1] * x.shape[2] * x.shape[3] - k + 1, dim=1
+            )[0]
             threshold = threshold.view(x.shape[0], 1, 1, 1)
 
         if relu:
