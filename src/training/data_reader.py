@@ -68,7 +68,7 @@ def train(args):
 
     # reader = TrainReader(args.triples)
     dset = TrainDataset(args.triples)
-    loader = DataLoader(dset, batch_size=args.bsize, num_workers=2, pin_memory=True)
+    loader = DataLoader(dset, batch_size=args.bsize, num_workers=0, pin_memory=True)
     train_loss = 0.0
 
     PRINT_PERIOD = 100
