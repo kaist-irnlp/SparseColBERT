@@ -114,6 +114,7 @@ class SparseColBERT(ColBERT):
         doc_maxlen,
         n,
         k,
+        use_binarization,
         dim=128,
         similarity_metric="cosine",
     ):
@@ -141,11 +142,19 @@ class SparseColBERT(ColBERT):
         self.linear = nn.Identity()
         self.sparse = WTAModel(wta_params)
         self.is_sparse = True
+        self.use_binarization = use_binarization
+
+    # map to 0 or 1 while making it differentiable
+    def _binarization(self, out):
+        return out + out.sign().relu().detach() - out.detach()
 
     def _sparse_maxpool(self, T):
         T_sparse = []
         for t in torch.unbind(T):
-            t_sparse = torch.max(self.sparse(t), dim=0).values
+            out = self.sparse(t)
+            if self.use_binarization:
+                out = self._binarization(out)
+            t_sparse = torch.max(out, dim=0).values
             T_sparse.append(t_sparse)
         T_sparse = torch.stack(T_sparse)
         return T_sparse

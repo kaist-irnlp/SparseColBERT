@@ -1,6 +1,7 @@
 import os
 import random
 import torch
+import neptune
 
 from argparse import ArgumentParser
 
@@ -35,6 +36,7 @@ def main():
     parser.add_argument("--use_dense", action="store_true")
     parser.add_argument("--n", default=4096, type=int)
     parser.add_argument("--k", default=0.005, type=float)
+    parser.add_argument("--use_binarization", action="store_true")
 
     # TODO: Add resume functionality
     # TODO: Save the configuration to the checkpoint.
@@ -53,6 +55,12 @@ def main():
     assert args.doc_maxlen <= 512
 
     args.triples = os.path.join(args.data_dir, args.triples)
+
+    neptune_project_name = 'junmokang/naver'
+    neptune_experiment_name = 'naver'
+    neptune.init(neptune_project_name)
+    neptune.create_experiment(name=neptune_project_name, params=parser.parse_args().__dict__)
+    args.neptune = neptune
 
     train(args)
 

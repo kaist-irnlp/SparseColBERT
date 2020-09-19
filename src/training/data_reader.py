@@ -4,6 +4,7 @@ import os
 import random
 from argparse import ArgumentParser
 from pathlib import Path
+import neptune
 
 import pandas as pd
 import torch
@@ -99,6 +100,7 @@ def train(args):
             doc_maxlen=args.doc_maxlen,
             n=args.n,
             k=args.k,
+            use_binarization=args.use_binarization,
             dim=args.dim,
             similarity_metric=args.similarity,
         )
@@ -175,5 +177,10 @@ def train(args):
 
             # loss
             print_message(batch_idx, train_loss / (batch_idx + 1))
+
+            args.neptune.log_metric('positive_score', (batch_idx + 1), positive_score)
+            args.neptune.log_metric('negative_score', (batch_idx + 1), negative_score)
+            args.neptune.log_metric('margin', (batch_idx + 1), positive_score - negative_score)
+            args.neptune.log_metric('loss', (batch_idx + 1), train_loss / (batch_idx + 1))
 
         manage_checkpoints(colbert, optimizer, batch_idx + 1)
