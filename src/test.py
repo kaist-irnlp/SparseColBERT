@@ -42,6 +42,9 @@ def main():
     parser.add_argument("--doc_maxlen", dest="doc_maxlen", default=180, type=int)
     parser.add_argument("--n", type=int, required=True)
     parser.add_argument("--k", type=float, required=True)
+    parser.add_argument(
+        "--dont_normalize_sparse", dest="normalize_sparse", action="store_false"
+    )
 
     args = parser.parse_args()
     args.input_arguments = args
