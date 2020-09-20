@@ -142,6 +142,17 @@ class SparseColBERT(ColBERT):
         self.sparse = WTAModel(wta_params)
         self.is_sparse = True
 
+    def forward(self, Q, D):
+        return self.score(self.query(Q), self.doc(D))
+
+    def query(self, queries):
+        Q = super().query(queries)
+        return self._sparse_maxpool(Q)
+
+    def doc(self, docs, return_mask=False):
+        D = super().doc(docs, return_mask)
+        return self._sparse_maxpool(D)
+
     def _sparse_maxpool(self, T):
         T_sparse = []
         for t in torch.unbind(T):
@@ -150,14 +161,6 @@ class SparseColBERT(ColBERT):
         T_sparse = torch.stack(T_sparse)
         return T_sparse
 
-    # TODO: need changes
-    def forward(self, Q, D):
-        Q_sp, D_sp = self._sparse_maxpool(self.query(Q)), self._sparse_maxpool(
-            self.doc(D)
-        )
-        return self.score(Q_sp, D_sp)
-
-    # TODO: need changes
     def score(self, Q, D):
         if self.similarity_metric == "cosine":
             scores = (Q * D).sum(dim=-1)
