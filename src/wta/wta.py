@@ -18,7 +18,7 @@ class WTAModel(nn.Module):
         features = self.layers(x)
         # if self.hparams.model.use_normalized_sparse:
         #     features = F.normalize(features, dim=-1)
-        return features
+        return F.normalize(features, dim=-1)
 
     def on_epoch_end(self):
         self.apply(update_boost_strength)
