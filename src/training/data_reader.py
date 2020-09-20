@@ -99,6 +99,7 @@ def train(args):
             doc_maxlen=args.doc_maxlen,
             n=args.n,
             k=args.k,
+            normalize_sparse=args.normalize_sparse,
             dim=args.dim,
             similarity_metric=args.similarity,
         )
