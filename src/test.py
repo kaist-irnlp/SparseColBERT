@@ -40,8 +40,8 @@ def main():
     parser.add_argument("--dim", dest="dim", default=128, type=int)
     parser.add_argument("--query_maxlen", dest="query_maxlen", default=32, type=int)
     parser.add_argument("--doc_maxlen", dest="doc_maxlen", default=180, type=int)
-    parser.add_argument("--n", type=int)
-    parser.add_argument("--k", type=float)
+    parser.add_argument("--n", type=int, required=True)
+    parser.add_argument("--k", type=float, required=True)
 
     args = parser.parse_args()
     args.input_arguments = args
