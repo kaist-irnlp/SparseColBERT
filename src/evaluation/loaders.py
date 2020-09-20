@@ -83,7 +83,7 @@ def load_colbert(args):
             dim=args.dim,
             similarity_metric=args.similarity,
         )
-        colbert = colbert.to(DEVICE)
+    colbert = colbert.to(DEVICE)
     checkpoint = load_checkpoint(args.checkpoint, colbert)
     colbert.eval()
 
