@@ -58,8 +58,8 @@ def evaluate(args, index=None):
     # output_path = '.'.join([str(x) for x in [args.run_name, 'tsv', int(time.time())]])
     # output_path = os.path.join(args.output_dir, output_path)
     checkpoint_name = Path(args.checkpoint_path).name
-    print(checkpoint_name)
-    output_path = Path(args.output_dir) / f"run_{checkpoint_name}_{args.run_name}.tsv"
+    run_name = Path(args.run_name).name
+    output_path = Path(args.output_dir) / f"run_{checkpoint_name}_{run_name}.tsv"
 
     # TODO: Save an associated metadata file with the args.input_args
 
