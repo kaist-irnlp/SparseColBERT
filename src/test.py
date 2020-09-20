@@ -61,6 +61,7 @@ def main():
     if args.qrels:
         args.qrels = os.path.join(args.data_dir, args.qrels)
 
+    args.checkpoint_path = args.checkpoint
     args.colbert, args.checkpoint = load_colbert(args)
     args.qrels = load_qrels(args.qrels)
     args.queries, args.topK_docs, args.topK_pids = load_topK(args.topK)
