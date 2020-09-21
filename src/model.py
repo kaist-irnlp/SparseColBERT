@@ -150,8 +150,13 @@ class SparseColBERT(ColBERT):
         return self._sparse_maxpool(Q)
 
     def doc(self, docs, return_mask=False):
-        D = super().doc(docs, return_mask)
-        return self._sparse_maxpool(D)
+        D, mask = None, None
+        if return_mask:
+            D, mask = super().doc(docs, return_mask)
+        else:
+            D = super().doc(docs, return_mask)
+        D = self._sparse_maxpool(D)
+        return (D, mask) if return_mask else D
 
     def _sparse_maxpool(self, T):
         T_sparse = []
