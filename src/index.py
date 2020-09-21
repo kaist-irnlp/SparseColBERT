@@ -37,6 +37,11 @@ def main():
     parser.add_argument("--query_maxlen", dest="query_maxlen", default=32, type=int)
     parser.add_argument("--doc_maxlen", dest="doc_maxlen", default=180, type=int)
     parser.add_argument("--dense", action="store_true")
+    parser.add_argument("--n", default=4096, type=int)
+    parser.add_argument("--k", default=0.005, type=float)
+    parser.add_argument(
+        "--dont_normalize_sparse", dest="normalize_sparse", action="store_false"
+    )
 
     # TODO: Add resume functionality
 
