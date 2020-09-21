@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from omegaconf import OmegaConf
+from omegaconf import ListConfig
 
 from transformers import BertPreTrainedModel, BertModel, BertTokenizer
 from src.parameters import DEVICE
@@ -120,8 +121,8 @@ class SparseColBERT(ColBERT):
     ):
         super().__init__(config, query_maxlen, doc_maxlen, dim, similarity_metric)
         # modification
-        n = n if isinstance(n, list) else [n]
-        k = k if isinstance(k, list) else [k]
+        n = n if type(n) in (ListConfig, list) else [n]
+        k = k if type(k) in (ListConfig, list) else [k]
         self.n = n
         self.k = k
         self.dense_size = self.bert.embeddings.word_embeddings.weight.shape[1]

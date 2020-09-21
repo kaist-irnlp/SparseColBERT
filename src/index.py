@@ -2,7 +2,7 @@ import os
 import random
 
 from argparse import ArgumentParser
-from multiprocessing import Pool
+from multiprocessing import Pool, freeze_support
 
 from src.parameters import DEFAULT_DATA_DIR, DEVICE
 from src.utils import print_message, create_directory
@@ -60,4 +60,5 @@ def main():
 
 
 if __name__ == "__main__":
+    freeze_support()
     main()

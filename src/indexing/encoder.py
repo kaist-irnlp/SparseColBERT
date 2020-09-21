@@ -84,15 +84,15 @@ def encode(args, number_of_subindexes_already_saved=0):
     # TODO: Create a metadata file; save `args.input_arguments` in there
     create_directory(args.index)
 
-    args.bsize = args.bsize * torch.cuda.device_count()
+    # args.bsize = args.bsize * torch.cuda.device_count()
 
-    print("#> Starting with NUM_GPUs =", torch.cuda.device_count())
-    print("#> Accordingly, setting total args.bsize =", args.bsize)
+    # print("#> Starting with NUM_GPUs =", torch.cuda.device_count())
+    # print("#> Accordingly, setting total args.bsize =", args.bsize)
 
     colbert = args.colbert
-    colbert.bert = nn.DataParallel(colbert.bert)
-    colbert.linear = nn.DataParallel(colbert.linear)
-    colbert = colbert.cuda()
+    # colbert.bert = nn.DataParallel(colbert.bert)
+    # colbert.linear = nn.DataParallel(colbert.linear)
+    colbert = colbert.to(DEVICE)
     colbert.eval()
 
     print("\n\n\n")
