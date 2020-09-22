@@ -172,7 +172,7 @@ class SparseColBERT(ColBERT):
         for t in torch.unbind(T):
             out = self.sparse(t)
             if self.use_binarization:
-                out = self._binarization(out)
+                out = self._binarization(torch.abs(out))
             t_sparse = torch.max(out, dim=0).values
             T_sparse.append(t_sparse)
         T_sparse = torch.stack(T_sparse)
