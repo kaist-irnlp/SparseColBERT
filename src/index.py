@@ -47,7 +47,7 @@ def main():
 
     args = parser.parse_args()
     args.input_arguments = args
-    args.pool = Pool(10)
+    args.pool = Pool(4)
 
     create_directory(args.output_dir)
 

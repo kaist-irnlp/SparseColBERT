@@ -17,8 +17,8 @@ Tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 pool = Pool(28)
 
 
-def to_indexed_list(D, mask, nbytes):
-    mask = torch.tensor(mask).bool()
+def to_indexed_list(D, nbytes, mask=None):
+    # mask = torch.tensor(mask).bool()
 
     D = D.detach().cpu()
     if nbytes == 2:
@@ -26,7 +26,8 @@ def to_indexed_list(D, mask, nbytes):
     else:
         assert nbytes == 4
 
-    return [d[mask[idx]] for idx, d in enumerate(D)]
+    # return [d[mask[idx]] for idx, d in enumerate(D)]
+    return [d for idx, d in enumerate(D)]
 
 
 def process_batch(args, super_batch_idx, batch_indices, super_batch):
@@ -51,7 +52,8 @@ def process_batch(args, super_batch_idx, batch_indices, super_batch):
             D_idxs = sorted_idxs[batch_idx * args.bsize : (batch_idx + 1) * args.bsize]
             D = [super_batch[d] for d in D_idxs]
             bucketed_outputs.append(
-                to_indexed_list(*colbert.doc(D, return_mask=True), nbytes=args.bytes)
+                # to_indexed_list(*colbert.doc(D, return_mask=True), nbytes=args.bytes)
+                to_indexed_list(colbert.doc(D), nbytes=args.bytes)
             )
             collection_indices += [batch_indices[d] for d in D_idxs]
 
