@@ -16,8 +16,8 @@ class WTAModel(nn.Module):
 
     def forward(self, x):
         features = self.layers(x)
-        # if self.hparams.model.use_normalized_sparse:
-        #     features = F.normalize(features, dim=-1)
+        if self.hparams.model.normalize_sparse:
+            features = F.normalize(features, dim=-1)
         return features
 
     def on_epoch_end(self):

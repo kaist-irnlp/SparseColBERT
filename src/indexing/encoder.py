@@ -11,14 +11,14 @@ from src.parameters import DEVICE
 from src.utils import print_message, create_directory
 
 
-SUPER_BATCH_SIZE = 500*1024
+SUPER_BATCH_SIZE = 500 * 1024
 
-Tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+Tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 pool = Pool(28)
 
 
-def to_indexed_list(D, mask, nbytes):
-    mask = torch.tensor(mask).bool()
+def to_indexed_list(D, nbytes, mask=None):
+    # mask = torch.tensor(mask).bool()
 
     D = D.detach().cpu()
     if nbytes == 2:
@@ -26,7 +26,8 @@ def to_indexed_list(D, mask, nbytes):
     else:
         assert nbytes == 4
 
-    return [d[mask[idx]] for idx, d in enumerate(D)]
+    # return [d[mask[idx]] for idx, d in enumerate(D)]
+    return [d for idx, d in enumerate(D)]
 
 
 def process_batch(args, super_batch_idx, batch_indices, super_batch):
@@ -48,9 +49,12 @@ def process_batch(args, super_batch_idx, batch_indices, super_batch):
         bucketed_outputs = []
 
         for batch_idx in range(ceil(len(super_batch) / args.bsize)):
-            D_idxs = sorted_idxs[batch_idx * args.bsize: (batch_idx + 1) * args.bsize]
+            D_idxs = sorted_idxs[batch_idx * args.bsize : (batch_idx + 1) * args.bsize]
             D = [super_batch[d] for d in D_idxs]
-            bucketed_outputs.append(to_indexed_list(*colbert.doc(D, return_mask=True), nbytes=args.bytes))
+            bucketed_outputs.append(
+                # to_indexed_list(*colbert.doc(D, return_mask=True), nbytes=args.bytes)
+                to_indexed_list(colbert.doc(D), nbytes=args.bytes)
+            )
             collection_indices += [batch_indices[d] for d in D_idxs]
 
         for output in bucketed_outputs:
@@ -62,10 +66,10 @@ def process_batch(args, super_batch_idx, batch_indices, super_batch):
     output_path = os.path.join(args.index, str(super_batch_idx) + ".pt")
     offset, endpos = min(collection_indices), max(collection_indices)
 
-    print("#> Writing", offset, "to", endpos, "to", output_path, '...')
+    print("#> Writing", offset, "to", endpos, "to", output_path, "...")
 
     assert len(collection) == len(collection_indices)
-    assert endpos - offset + 1 == len(collection_indices), (len(collection_indices))
+    assert endpos - offset + 1 == len(collection_indices), len(collection_indices)
     assert len(collection_indices) == len(set(collection_indices))
 
     collectionX = [None] * len(collection_indices)
@@ -82,26 +86,26 @@ def encode(args, number_of_subindexes_already_saved=0):
     # TODO: Create a metadata file; save `args.input_arguments` in there
     create_directory(args.index)
 
-    args.bsize = args.bsize * torch.cuda.device_count()
+    # args.bsize = args.bsize * torch.cuda.device_count()
 
-    print("#> Starting with NUM_GPUs =", torch.cuda.device_count())
-    print("#> Accordingly, setting total args.bsize =", args.bsize)
+    # print("#> Starting with NUM_GPUs =", torch.cuda.device_count())
+    # print("#> Accordingly, setting total args.bsize =", args.bsize)
 
     colbert = args.colbert
-    colbert.bert = nn.DataParallel(colbert.bert)
-    colbert.linear = nn.DataParallel(colbert.linear)
-    colbert = colbert.cuda()
+    # colbert.bert = nn.DataParallel(colbert.bert)
+    # colbert.linear = nn.DataParallel(colbert.linear)
+    colbert = colbert.to(DEVICE)
     colbert.eval()
 
-    print('\n\n\n')
+    print("\n\n\n")
     print("#> args.output_dir =", args.output_dir)
     print("#> number_of_subindexes_already_saved =", number_of_subindexes_already_saved)
-    print('\n\n\n')
+    print("\n\n\n")
 
     super_batch_idx = 0
     super_batch, batch_indices = [], []
 
-    with open(args.collection) as f:
+    with open(args.collection, encoding="utf-8") as f:
         for idx, passage in enumerate(f):
             if len(super_batch) == SUPER_BATCH_SIZE:
                 if super_batch_idx < number_of_subindexes_already_saved:
@@ -114,7 +118,7 @@ def encode(args, number_of_subindexes_already_saved=0):
                 super_batch_idx += 1
                 super_batch, batch_indices = [], []
 
-            pid, passage = passage.split('\t')
+            pid, passage = passage.split("\t")
             super_batch.append(passage)
             batch_indices.append(idx)
 

@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from omegaconf import OmegaConf
+from omegaconf import ListConfig
 
 from transformers import BertPreTrainedModel, BertModel, BertTokenizer
 from src.parameters import DEVICE
@@ -115,13 +116,14 @@ class SparseColBERT(ColBERT):
         n,
         k,
         use_binarization,
+        normalize_sparse,
         dim=128,
         similarity_metric="cosine",
     ):
         super().__init__(config, query_maxlen, doc_maxlen, dim, similarity_metric)
         # modification
-        n = n if isinstance(n, list) else [n]
-        k = k if isinstance(k, list) else [k]
+        n = n if type(n) in (ListConfig, list) else [n]
+        k = k if type(k) in (ListConfig, list) else [k]
         self.n = n
         self.k = k
         self.dense_size = self.bert.embeddings.word_embeddings.weight.shape[1]
@@ -136,6 +138,7 @@ class SparseColBERT(ColBERT):
                     "boost_strength": 1.5,
                     "boost_strength_factor": 0.9,
                     "dense_size": self.dense_size,
+                    "normalize_sparse": normalize_sparse,
                 },
             }
         )
@@ -148,6 +151,22 @@ class SparseColBERT(ColBERT):
     def _binarization(self, out):
         return out + out.sign().relu().detach() - out.detach()
 
+    def forward(self, Q, D):
+        return self.score(self.query(Q), self.doc(D))
+
+    def query(self, queries):
+        Q = super().query(queries)
+        return self._sparse_maxpool(Q)
+
+    def doc(self, docs, return_mask=False):
+        D, mask = None, None
+        if return_mask:
+            D, mask = super().doc(docs, return_mask)
+        else:
+            D = super().doc(docs, return_mask)
+        D = self._sparse_maxpool(D)
+        return (D, mask) if return_mask else D
+
     def _sparse_maxpool(self, T):
         T_sparse = []
         for t in torch.unbind(T):
@@ -159,14 +178,6 @@ class SparseColBERT(ColBERT):
         T_sparse = torch.stack(T_sparse)
         return T_sparse
 
-    # TODO: need changes
-    def forward(self, Q, D):
-        Q_sp, D_sp = self._sparse_maxpool(self.query(Q)), self._sparse_maxpool(
-            self.doc(D)
-        )
-        return self.score(Q_sp, D_sp)
-
-    # TODO: need changes
     def score(self, Q, D):
         if self.similarity_metric == "cosine":
             scores = (Q * D).sum(dim=-1)

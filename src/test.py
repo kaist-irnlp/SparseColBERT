@@ -15,31 +15,44 @@ from src.evaluation.metrics import evaluate_recall
 def main():
     random.seed(123456)
 
-    parser = ArgumentParser(description='Exhaustive (non-index-based) evaluation of re-ranking with ColBERT.')
+    parser = ArgumentParser(
+        description="Exhaustive (non-index-based) evaluation of re-ranking with ColBERT."
+    )
 
-    parser.add_argument('--checkpoint', dest='checkpoint', required=True)
-    parser.add_argument('--topk', dest='topK', required=True)
-    parser.add_argument('--qrels', dest='qrels', default=None)
-    parser.add_argument('--shortcircuit', dest='shortcircuit', default=False, action='store_true')
+    parser.add_argument("--checkpoint", dest="checkpoint", required=True)
+    parser.add_argument("--topk", dest="topK", required=True)
+    parser.add_argument("--qrels", dest="qrels", default=None)
+    parser.add_argument(
+        "--shortcircuit", dest="shortcircuit", default=False, action="store_true"
+    )
 
-    parser.add_argument('--data_dir', dest='data_dir', default=DEFAULT_DATA_DIR)
-    parser.add_argument('--output_dir', dest='output_dir', default='outputs.test/')
+    parser.add_argument("--data_dir", dest="data_dir", default=DEFAULT_DATA_DIR)
+    parser.add_argument("--output_dir", dest="output_dir", default="outputs.test/")
 
-    parser.add_argument('--bsize', dest='bsize', default=128, type=int)
-    parser.add_argument('--subsample', dest='subsample', default=None)  # TODO: Add this
+    parser.add_argument("--bsize", dest="bsize", default=128, type=int)
+    parser.add_argument("--subsample", dest="subsample", default=None)  # TODO: Add this
+    parser.add_argument("--dense", action="store_true")
 
     # TODO: For the following four arguments, default should be None. If None, they should be loaded from checkpoint.
-    parser.add_argument('--similarity', dest='similarity', default='cosine', choices=['cosine', 'l2'])
-    parser.add_argument('--dim', dest='dim', default=128, type=int)
-    parser.add_argument('--query_maxlen', dest='query_maxlen', default=32, type=int)
-    parser.add_argument('--doc_maxlen', dest='doc_maxlen', default=180, type=int)
+    parser.add_argument(
+        "--similarity", dest="similarity", default="cosine", choices=["cosine", "l2"]
+    )
+    parser.add_argument("--dim", dest="dim", default=128, type=int)
+    parser.add_argument("--query_maxlen", dest="query_maxlen", default=32, type=int)
+    parser.add_argument("--doc_maxlen", dest="doc_maxlen", default=180, type=int)
+    parser.add_argument("--n", type=int, required=True)
+    parser.add_argument("--k", type=float, required=True)
+    parser.add_argument(
+        "--dont_normalize_sparse", dest="normalize_sparse", action="store_false"
+    )
 
     args = parser.parse_args()
     args.input_arguments = args
 
-    assert (not args.shortcircuit) or args.qrels, \
-        "Short-circuiting (i.e., applying minimal computation to queries with no positives [in the re-ranked set]) " \
+    assert (not args.shortcircuit) or args.qrels, (
+        "Short-circuiting (i.e., applying minimal computation to queries with no positives [in the re-ranked set]) "
         "can only be applied if qrels is provided."
+    )
 
     args.pool = Pool(10)
     args.run_name = args.topK
@@ -51,6 +64,7 @@ def main():
     if args.qrels:
         args.qrels = os.path.join(args.data_dir, args.qrels)
 
+    args.checkpoint_path = args.checkpoint
     args.colbert, args.checkpoint = load_colbert(args)
     args.qrels = load_qrels(args.qrels)
     args.queries, args.topK_docs, args.topK_pids = load_topK(args.topK)

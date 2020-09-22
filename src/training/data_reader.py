@@ -55,12 +55,13 @@ class TrainReader:
         return [self.reader.readline().split("\t") for _ in range(bsize)]
 
 
-checkpoint_dir = Path("checkpoints")
-checkpoint_dir.mkdir(parents=True, exist_ok=True)
+# checkpoint_dir = Path("checkpoints")
+# checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
 
-def manage_checkpoints(colbert, optimizer, batch_idx):
+def manage_checkpoints(colbert, optimizer, batch_idx, output_dir):
     config = colbert.config
+    checkpoint_dir = Path(output_dir)
     model_desc = f"colbert_hidden={config.hidden_size}_qlen={colbert.query_maxlen}_dlen={colbert.doc_maxlen}"
     if hasattr(colbert, "sparse"):
         n = "-".join([str(n) for n in colbert.n])
@@ -101,6 +102,7 @@ def train(args):
             n=args.n,
             k=args.k,
             use_binarization=args.use_binarization,
+            normalize_sparse=args.normalize_sparse,
             dim=args.dim,
             similarity_metric=args.similarity,
         )
@@ -183,4 +185,4 @@ def train(args):
             args.neptune.log_metric('margin', (batch_idx + 1), positive_score - negative_score)
             args.neptune.log_metric('loss', (batch_idx + 1), train_loss / (batch_idx + 1))
 
-        manage_checkpoints(colbert, optimizer, batch_idx + 1)
+        manage_checkpoints(colbert, optimizer, batch_idx + 1, args.output_dir)
