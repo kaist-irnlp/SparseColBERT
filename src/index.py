@@ -26,7 +26,7 @@ def main():
     parser.add_argument("--output_dir", dest="output_dir", default="outputs.index/")
 
     parser.add_argument("--bsize", dest="bsize", default=128, type=int)
-    parser.add_argument("--bytes", dest="bytes", default=2, choices=[2, 4], type=int)
+    parser.add_argument("--bytes", dest="bytes", default=4, choices=[2, 4], type=int)
     parser.add_argument("--subsample", dest="subsample", default=None)  # TODO: Add this
 
     # TODO: For the following four arguments, default should be None. If None, they should be loaded from checkpoint.
