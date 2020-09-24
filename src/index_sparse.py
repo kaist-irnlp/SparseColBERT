@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import dask.dataframe as dd
 from dask.diagnostics import ProgressBar
@@ -32,6 +33,34 @@ def load_model(args):
     return args.model, checkpoint
 
 
+def get_ids_and_embs(data, model, is_query=False):
+    ids = []
+    embs = []
+    encode = model.query if is_query else model.doc
+    for chunk in tqdm(data):
+        # ids
+        ids.append(chunk.id.values)
+        # embs
+        T = chunk.text.values
+        e = sparse.csr_matrix(encode(T).detach().cpu())
+        embs.append(e)
+    ids = np.concatenate(ids)
+    embs = sparse.vstack(embs)
+    return ids, embs
+
+
+def save_ids_and_embs(ids, embs, output_dir, postfix, is_query=False):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    prefix = "query" if is_query else "doc"
+    # ids
+    output_path = output_dir / f"{prefix}_ids"
+    np.save(output_path, ids)
+    # embs
+    output_path = output_dir / f"{prefix}_{postfix}"
+    sparse.save_npz(output_path, embs)
+
+
 def main():
     parser = ArgumentParser(
         description="Exhaustive (non-index-based) evaluation of re-ranking with ColBERT."
@@ -54,6 +83,7 @@ def main():
     model, meta = load_model(args)
 
     index_postfix = f"n={args.n}_k={args.k}_epoch={meta['epoch']}_step={meta['batch']}"
+    output_dir = Path(args.output_dir)
 
     # query
     ## load data
@@ -61,17 +91,9 @@ def main():
         args.query, sep="\t", names=["id", "text"], chunksize=args.batch_size
     )
     ## process
-    embs = []
-    for chunk in tqdm(data):
-        Q = chunk.text.values
-        e = sparse.csr_matrix(model.query(Q).detach().cpu())
-        embs.append(e)
-    embs = sparse.vstack(embs)
+    ids, embs = get_ids_and_embs(data, model, is_query=True)
     ## save
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"query_{index_postfix}"
-    sparse.save_npz(output_path, embs)
+    save_ids_and_embs(ids, embs, output_dir, index_postfix, is_query=True)
 
     # docs
     ## load data
@@ -79,18 +101,9 @@ def main():
         args.collection, sep="\t", names=["id", "text"], chunksize=args.batch_size
     )
     ## process
-    embs = []
-    # total = int(len(data) / args.batch_size) + 1
-    for chunk in tqdm(data):
-        D = chunk.text.values
-        e = sparse.csr_matrix(model.doc(D).detach().cpu())
-        embs.append(e)
-    embs = sparse.vstack(embs)
+    ids, embs = get_ids_and_embs(data, model)
     ## save
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"doc_{index_postfix}"
-    sparse.save_npz(output_path, embs)
+    save_ids_and_embs(ids, embs, output_dir, index_postfix)
 
 
 if __name__ == "__main__":
