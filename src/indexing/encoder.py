@@ -2,6 +2,7 @@ import os
 import torch
 import torch.nn as nn
 
+from scipy import sparse
 from time import time
 from math import ceil
 from multiprocessing import Pool

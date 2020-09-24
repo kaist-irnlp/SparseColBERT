@@ -115,7 +115,8 @@ class SparseColBERT(ColBERT):
         doc_maxlen,
         n,
         k,
-        normalize_sparse,
+        k_inference_factor=1.5,
+        normalize_sparse=True,
         dim=128,
         similarity_metric="cosine",
     ):
@@ -133,7 +134,7 @@ class SparseColBERT(ColBERT):
                 "model": {
                     "weight_sparsity": 0.3,
                     "normalize_weights": True,
-                    "k_inference_factor": 1.5,
+                    "k_inference_factor": k_inference_factor,
                     "boost_strength": 1.5,
                     "boost_strength_factor": 0.9,
                     "dense_size": self.dense_size,
