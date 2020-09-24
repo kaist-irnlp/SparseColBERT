@@ -78,7 +78,10 @@ def process_batch(args, super_batch_idx, batch_indices, super_batch):
     for pos, idx in enumerate(collection_indices):
         collectionX[idx - offset] = collection[pos]
 
-    torch.save(collectionX, output_path)
+    # modified for sparse
+    # torch.save(collectionX, output_path)
+    collectionX = sparse.csr_matrix(collectionX)
+    sparse.save_npz(output_path, collectionX)
 
     print("#> Saved!\n\n")
 
