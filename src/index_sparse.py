@@ -2,6 +2,8 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import pandas as pd
+import dask.dataframe as dd
+from dask.diagnostics import ProgressBar
 from scipy import sparse
 from tqdm import tqdm
 
@@ -78,6 +80,7 @@ def main():
     )
     ## process
     embs = []
+    # total = int(len(data) / args.batch_size) + 1
     for chunk in tqdm(data):
         D = chunk.text.values
         e = sparse.csr_matrix(model.doc(D).detach().cpu())
