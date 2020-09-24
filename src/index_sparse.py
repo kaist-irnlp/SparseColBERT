@@ -7,6 +7,7 @@ import dask.dataframe as dd
 from dask.diagnostics import ProgressBar
 from scipy import sparse
 from tqdm import tqdm
+import math
 
 from src.model import SparseColBERT
 from src.parameters import DEVICE
@@ -33,11 +34,21 @@ def load_model(args):
     return args.model, checkpoint
 
 
-def get_ids_and_embs(data, model, is_query=False):
+def get_ids_and_embs(data_path, model, batch_size=32, is_query=False):
+    # load
+    data = pd.read_csv(data_path, sep="\t", names=["id", "text"], chunksize=batch_size)
+    with ProgressBar():
+        total = (
+            dd.read_csv(data_path, sep="\t", names=["id", "text"]).shape[0].compute()
+        )
+        total_steps = math.ceil(total / batch_size)
+        print("Total steps:", total_steps)
+
+    # process
     ids = []
     embs = []
     encode = model.query if is_query else model.doc
-    for chunk in tqdm(data):
+    for chunk in tqdm(data, total=total_steps):
         # ids
         ids.append(chunk.id.values)
         # embs
@@ -86,22 +97,20 @@ def main():
     output_dir = Path(args.output_dir)
 
     # query
-    ## load data
-    data = pd.read_csv(
-        args.query, sep="\t", names=["id", "text"], chunksize=args.batch_size
-    )
     ## process
-    ids, embs = get_ids_and_embs(data, model, is_query=True)
+    ids, embs = get_ids_and_embs(
+        args.query, model, batch_size=args.batch_size, is_query=True
+    )
     ## save
     save_ids_and_embs(ids, embs, output_dir, index_postfix, is_query=True)
 
     # docs
-    ## load data
-    data = pd.read_csv(
-        args.collection, sep="\t", names=["id", "text"], chunksize=args.batch_size
-    )
     ## process
-    ids, embs = get_ids_and_embs(data, model)
+    ids, embs = get_ids_and_embs(
+        args.collection,
+        model,
+        batch_size=args.batch_size,
+    )
     ## save
     save_ids_and_embs(ids, embs, output_dir, index_postfix)
 
