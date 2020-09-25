@@ -110,6 +110,11 @@ def kwinners(
             threshold.clamp_(min=0)
         off_mask = boosted < threshold
 
+    # min-max norm [0, 1]
+    x_min = x.min(-1).values.unsqueeze(-1)
+    x_max = x.max(-1).values.unsqueeze(-1)
+    x = (x - x_min) / (x_max - x_min)
+    
     if inplace:
         return x.masked_fill_(off_mask, 0)
     else:

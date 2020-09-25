@@ -157,6 +157,10 @@ def train(args):
             #     )
 
             loss = criterion(out, labels[: out.size(0)])
+            # enforce the scale to be kept (overlap between Q and D)
+            reg_lambda = 0.1
+            reg_loss = reg_lambda * (colbert_out2.mean() - colbert_out1.mean())
+            loss += reg_loss
             loss = loss / args.accumsteps
             loss.backward()
 
