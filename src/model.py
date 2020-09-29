@@ -115,7 +115,7 @@ class SparseColBERT(ColBERT):
         doc_maxlen,
         n,
         k,
-        k_inference_factor=1.5,
+        k_inference_factor=1.0,
         normalize_sparse=True,
         dim=128,
         similarity_metric="cosine",
