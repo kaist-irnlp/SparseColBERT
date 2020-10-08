@@ -91,7 +91,7 @@ def manage_checkpoints(colbert, optimizer, batch_idx, output_dir):
 def train(args):
     if args.use_dense:
         colbert = ColBERT.from_pretrained(
-            "bert-base-uncased",
+            args.base_model,
             query_maxlen=args.query_maxlen,
             doc_maxlen=args.doc_maxlen,
             dim=args.dim,
@@ -99,7 +99,7 @@ def train(args):
         )
     else:
         colbert = SparseColBERT.from_pretrained(
-            "bert-base-uncased",
+            args.base_model,
             query_maxlen=args.query_maxlen,
             doc_maxlen=args.doc_maxlen,
             n=args.n,
