@@ -18,7 +18,7 @@ def main():
     )
 
     parser.add_argument("--lr", dest="lr", default=3e-06, type=float)
-    parser.add_argument("--maxsteps", dest="maxsteps", default=400000, type=int)
+    parser.add_argument("--maxsteps", dest="maxsteps", default=320000, type=int)
     parser.add_argument("--bsize", dest="bsize", default=16, type=int)
     parser.add_argument("--accum", dest="accumsteps", default=4, type=int)
 
@@ -38,6 +38,8 @@ def main():
     parser.add_argument(
         "--dont_normalize_sparse", dest="normalize_sparse", action="store_false"
     )
+    parser.add_argument("--use_nonneg", action="store_true")
+    parser.add_argument("--use_ortho", action="store_true")
 
     # TODO: Add resume functionality
     # TODO: Save the configuration to the checkpoint.
