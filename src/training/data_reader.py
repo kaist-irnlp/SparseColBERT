@@ -62,7 +62,7 @@ def manage_checkpoints(colbert, optimizer, batch_idx, output_dir):
     config = colbert.config
     checkpoint_dir = Path(output_dir)
     model_desc = f"colbert_hidden={config.hidden_size}_qlen={colbert.query_maxlen}_dlen={colbert.doc_maxlen}"
-    if hasattr(colbert, "sparse"):
+    if isinstance(colbert, SparseColBERT):
         n = "-".join([str(n) for n in colbert.n])
         k = "-".join([str(k) for k in colbert.k])
         model_desc += f"_sparse_n={n}_k={k}"
