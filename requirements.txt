@@ -1,0 +1,19 @@
+# pytorch-lightning >= 0.9.0
+# torch ## conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
+# zarr
+# torchtext
+# dask
+transformers
+hydra-core>=1.0.0
+tqdm
+pyarrow
+matplotlib
+gensim
+scikit-learn
+cython
+scipy
+wandb
+pandas
+python-snappy
+toolz
+redis
