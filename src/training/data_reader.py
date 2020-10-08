@@ -134,7 +134,7 @@ def train(args):
             B = Batch[B_idx * size : (B_idx + 1) * size]
             Q, D1, D2 = zip(*B)
 
-            colbert_out = colbert(Q + Q, D1 + D2)
+            colbert_out, QQ_emb, DD_emb = colbert(Q + Q, D1 + D2, return_embedding=True)
             colbert_out1, colbert_out2 = colbert_out[: len(Q)], colbert_out[len(Q) :]
 
             out = torch.stack((colbert_out1, colbert_out2), dim=-1)
@@ -154,6 +154,14 @@ def train(args):
             #     )
 
             loss = criterion(out, labels[: out.size(0)])
+            if args.use_ortho:
+                Q_emb, D1_emb, D2_emb = (
+                    QQ_emb[: len(Q)],
+                    DD_emb[: len(Q)],
+                    DD_emb[len(Q) :],
+                )
+                loss_ortho = colbert.ortho_all([Q_emb, D1_emb, D2_emb])
+                loss += loss_ortho
             loss = loss / args.accumsteps
             loss.backward()
 
