@@ -115,12 +115,16 @@ class SparseColBERT(ColBERT):
         doc_maxlen,
         n,
         k,
-        k_inference_factor=1.0,
+        k_inference_factor=1.5,
         normalize_sparse=True,
-        dim=128,
+        use_nonneg=False,
+        use_ortho=False,
         similarity_metric="cosine",
     ):
-        super().__init__(config, query_maxlen, doc_maxlen, dim, similarity_metric)
+        projection_dim_not_used = 128
+        super().__init__(
+            config, query_maxlen, doc_maxlen, projection_dim_not_used, similarity_metric
+        )
         # modification
         n = n if type(n) in (ListConfig, list) else [n]
         k = k if type(k) in (ListConfig, list) else [k]
@@ -139,12 +143,16 @@ class SparseColBERT(ColBERT):
                     "boost_strength_factor": 0.9,
                     "dense_size": self.dense_size,
                     "normalize_sparse": normalize_sparse,
+                    "use_nonneg": use_nonneg,
+                    "use_ortho": use_ortho,
                 },
             }
         )
         self.linear = nn.Identity()
         self.sparse = WTAModel(wta_params)
         self.is_sparse = True
+        self.use_nonneg = use_nonneg
+        self.use_ortho = use_ortho
 
     def forward(self, Q, D):
         return self.score(self.query(Q), self.doc(D))
@@ -178,65 +186,15 @@ class SparseColBERT(ColBERT):
         assert self.similarity_metric == "l2"
         return F.mse_loss(Q, D, reduction="none")
 
-    # def query(self, queries):
-    #     queries = [["[unused0]"] + self._tokenize(q) for q in queries]
+    def ortho(self, T):
+        ortho_loss = torch.mean(
+            torch.norm(
+                torch.matmul(T, T.T) - torch.eye(T.shape[0], device=DEVICE),
+                p=2,
+                dim=-1,
+            )
+        )
+        return ortho_loss * self.hparams.model.ortho_ratio  # lambda for ortho loss
 
-    #     input_ids, attention_mask = zip(
-    #         *[self._encode(x, self.query_maxlen) for x in queries]
-    #     )
-    #     input_ids, attention_mask = self._tensorize(input_ids), self._tensorize(
-    #         attention_mask
-    #     )
-
-    #     Q = self.bert(input_ids, attention_mask=attention_mask)[0]
-    #     Q = self.linear(Q)
-
-    #     return torch.nn.functional.normalize(Q, p=2, dim=2)
-
-    # def doc(self, docs, return_mask=False):
-    #     docs = [["[unused1]"] + self._tokenize(d)[: self.doc_maxlen - 3] for d in docs]
-
-    #     lengths = [len(d) + 2 for d in docs]  # +2 for [CLS], [SEP]
-    #     d_max_length = max(lengths)
-
-    #     input_ids, attention_mask = zip(*[self._encode(x, d_max_length) for x in docs])
-    #     input_ids, attention_mask = self._tensorize(input_ids), self._tensorize(
-    #         attention_mask
-    #     )
-
-    #     D = self.bert(input_ids, attention_mask=attention_mask)[0]
-    #     D = self.linear(D)
-
-    #     # [CLS] .. d ... [SEP] [PAD] ... [PAD]
-    #     mask = [
-    #         [1]
-    #         + [x not in self.skiplist for x in d]
-    #         + [1]
-    #         + [0] * (d_max_length - length)
-    #         for d, length in zip(docs, lengths)
-    #     ]
-
-    #     D = D * torch.tensor(mask, device=DEVICE, dtype=torch.float32).unsqueeze(2)
-    #     D = torch.nn.functional.normalize(D, p=2, dim=2)
-
-    #     return (D, mask) if return_mask else D
-
-    # def _tokenize(self, text):
-    #     if type(text) == list:
-    #         return text
-
-    #     return self.tokenizer.tokenize(text)
-
-    # def _encode(self, x, max_length):
-    #     input_ids = self.tokenizer.encode(
-    #         x, add_special_tokens=True, max_length=max_length
-    #     )
-
-    #     padding_length = max_length - len(input_ids)
-    #     attention_mask = [1] * len(input_ids) + [0] * padding_length
-    #     input_ids = input_ids + [103] * padding_length
-
-    #     return input_ids, attention_mask
-
-    # def _tensorize(self, l):
-    #     return torch.tensor(l, dtype=torch.long, device=DEVICE)
+    def ortho_all(self, tensors):
+        return torch.mean(torch.tensor([self.ortho(t) for t in tensors])).to(DEVICE)
