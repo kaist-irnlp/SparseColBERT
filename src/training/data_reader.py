@@ -66,6 +66,10 @@ def manage_checkpoints(colbert, optimizer, batch_idx, output_dir):
         n = "-".join([str(n) for n in colbert.n])
         k = "-".join([str(k) for k in colbert.k])
         model_desc += f"_sparse_n={n}_k={k}"
+        if colbert.use_nonneg:
+            model_desc += "_nonneg"
+        if colbert.use_ortho:
+            model_desc += "_ortho"
     else:
         model_desc += f"_dense"
 
