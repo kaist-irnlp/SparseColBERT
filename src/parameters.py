@@ -1,7 +1,8 @@
 import torch
 import os
 
-DEVICE = torch.device(os.environ["DEVICE"])
+#DEVICE = torch.device(os.environ["DEVICE"])
+DEVICE = None
 
 DEFAULT_DATA_DIR = "./data_download/"
 

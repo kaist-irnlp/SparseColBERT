@@ -4,18 +4,32 @@ import os
 import random
 from argparse import ArgumentParser
 from pathlib import Path
+import string
 
 import pandas as pd
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset, IterableDataset
+from transformers import BertPreTrainedModel, BertModel, BertTokenizer
 from tqdm import tqdm
-from transformers import AdamW
+from transformers import AdamW, Trainer
 
 from src.model import ColBERT, SparseColBERT
 from src.parameters import DEVICE, SAVED_CHECKPOINTS
 from src.utils import batch, print_message, save_checkpoint
+from dataclasses import dataclass
+from typing import List, Optional, Union
 
+@dataclass
+class InputExample:
+    Q_ids: List[int]
+    Q_att: List[int]
+    D1_ids: List[int]
+    D1_att: List[int]
+    D1_mask: List[int]
+    D2_ids: List[int]
+    D2_att: List[int]
+    D2_mask: List[int]
 
 class TrainDataset(IterableDataset):
     def __init__(self, data_file):
@@ -44,6 +58,66 @@ class TrainDataset(IterableDataset):
             data = self.data[start:end]
         return iter(data)
 
+class TrainDatasetforTPU(Dataset):
+    def __init__(self, data_file, query_maxlen, doc_maxlen, numins=10000):
+        print_message("#> Training with the triples in", data_file, "...\n\n")
+        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        self.reader = open(data_file, mode="r", encoding="utf-8")
+        self.query_maxlen = query_maxlen
+        self.doc_maxlen = doc_maxlen
+        self.skiplist = {w: True for w in string.punctuation}
+        self.data = self._getdata(numins)
+
+    def __len__(self):
+        return len(self.data)
+        
+    def _getdata(self, numins):
+        return [self._convert_raw_to_obj(self.reader.readline().split("\t")) for _ in range(numins)]
+
+    def _convert_raw_to_obj(self, raw_ex):
+        Q, D1, D2 = raw_ex[0], raw_ex[1], raw_ex[2]
+        Q_ids, Q_att = self._convert_query_to_ids(Q)
+        D1_ids, D1_att, D1_mask = self._convert_doc_to_ids(D1)
+        D2_ids, D2_att, D2_mask = self._convert_doc_to_ids(D2)
+        return InputExample(Q_ids=Q_ids, Q_att=Q_att, D1_ids=D1_ids, D1_att=D1_att, D1_mask = D1_mask, D2_ids=D2_ids, D2_att=D2_att, D2_mask=D2_mask)
+        #return InputExample(Q=Q, D1=D1, D2=D2) 
+        #return InputExample(*raw_ex) 
+
+    def _convert_query_to_ids(self, query):
+        query = ["[unused0]"] + self._tokenize(query)
+        input_id, attention_mask = self._encode(query, self.query_maxlen)
+        input_id, attention_mask = torch.tensor(input_id, dtype=torch.long), torch.tensor(attention_mask, dtype=torch.long)
+        return input_id, attention_mask
+
+    def _convert_doc_to_ids(self, doc):
+        doc = ["[unused1]"] + self._tokenize(doc)[: self.doc_maxlen - 3]
+        length = len(doc) + 2
+        mask = [1] + [x not in self.skiplist for x in doc] + [1] + [0] * (self.doc_maxlen - length)
+        mask = torch.tensor(mask, dtype=torch.float32)
+        input_id, attention_mask = self._encode(doc, self.doc_maxlen)
+        input_id, attention_mask = torch.tensor(input_id, dtype=torch.long), torch.tensor(attention_mask, dtype=torch.long)
+        return input_id, attention_mask, mask
+
+    def _encode(self, x, max_length):
+        input_ids = self.tokenizer.encode(
+            x, add_special_tokens=True, max_length=max_length, truncation=True
+        )
+
+        padding_length = max_length - len(input_ids)
+        attention_mask = [1] * len(input_ids) + [0] * padding_length
+        input_ids = input_ids + [103] * padding_length
+
+        return input_ids, attention_mask
+
+    def _tokenize(self, text):
+        if type(text) == list:
+            return text
+
+        return self.tokenizer.tokenize(text)
+
+    def __getitem__(self, i):
+        return self.data[i]
+
 
 class TrainReader:
     def __init__(self, data_file):
@@ -62,14 +136,10 @@ def manage_checkpoints(colbert, optimizer, batch_idx, output_dir):
     config = colbert.config
     checkpoint_dir = Path(output_dir)
     model_desc = f"colbert_hidden={config.hidden_size}_qlen={colbert.query_maxlen}_dlen={colbert.doc_maxlen}"
-    if isinstance(colbert, SparseColBERT):
+    if hasattr(colbert, "sparse"):
         n = "-".join([str(n) for n in colbert.n])
         k = "-".join([str(k) for k in colbert.k])
         model_desc += f"_sparse_n={n}_k={k}"
-        if colbert.use_nonneg:
-            model_desc += "_nonneg"
-        if colbert.use_ortho:
-            model_desc += "_ortho"
     else:
         model_desc += f"_dense"
 
@@ -88,10 +158,10 @@ def manage_checkpoints(colbert, optimizer, batch_idx, output_dir):
         )
 
 
-def train(args):
+def train(args, training_args):
     if args.use_dense:
         colbert = ColBERT.from_pretrained(
-            args.base_model,
+            "bert-base-uncased",
             query_maxlen=args.query_maxlen,
             doc_maxlen=args.doc_maxlen,
             dim=args.dim,
@@ -99,94 +169,101 @@ def train(args):
         )
     else:
         colbert = SparseColBERT.from_pretrained(
-            args.base_model,
+            "bert-base-uncased",
             query_maxlen=args.query_maxlen,
             doc_maxlen=args.doc_maxlen,
             n=args.n,
             k=args.k,
             normalize_sparse=args.normalize_sparse,
+            dim=args.dim,
             similarity_metric=args.similarity,
         )
-    colbert = colbert.to(DEVICE)
-    colbert.train()
+      
+    train_dataset = TrainDatasetforTPU(args.triples, args.query_maxlen, args.doc_maxlen)
+    trainer = Trainer(
+        model=colbert,
+        args=training_args,
+        train_dataset=train_dataset,
+    )
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = AdamW(colbert.parameters(), lr=args.lr, eps=1e-8)
+    # Training
+    #if training_args.do_train:
+    trainer.train()
+    trainer.save_model()
 
-    optimizer.zero_grad()
-    labels = torch.zeros(args.bsize, dtype=torch.long, device=DEVICE)
 
-    reader = TrainReader(args.triples)
-    # dset = TrainDataset(args.triples)
-    # loader = DataLoader(dset, batch_size=args.bsize, num_workers=0, pin_memory=True)
-    train_loss = 0.0
+    # colbert = colbert.to(DEVICE)
+    # colbert.train()
 
-    PRINT_PERIOD = 100
+    # criterion = nn.CrossEntropyLoss()
+    # optimizer = AdamW(colbert.parameters(), lr=args.lr, eps=1e-8)
 
-    for batch_idx in tqdm(range(args.maxsteps)):
-        Batch = reader.get_minibatch(args.bsize)
-        # for batch_idx, Batch in enumerate(tqdm(loader)):
-        #     if batch_idx > args.maxsteps:
-        #         print_message("#> Finish training at", batch_idx, "...\n\n")
-        #         break
-        #     Batch = [[q, pos, neg] for (q, pos, neg) in zip(Batch[0], Batch[1], Batch[2])]
-        Batch = sorted(Batch, key=lambda x: max(len(x[1]), len(x[2])))
+    # optimizer.zero_grad()
+    # labels = torch.zeros(args.bsize, dtype=torch.long, device=DEVICE)
 
-        positive_score, negative_score = 0.0, 0.0
-        for B_idx in range(args.accumsteps):
-            size = args.bsize // args.accumsteps
-            B = Batch[B_idx * size : (B_idx + 1) * size]
-            Q, D1, D2 = zip(*B)
+    # reader = TrainReader(args.triples)
+    # # dset = TrainDataset(args.triples)
+    # # loader = DataLoader(dset, batch_size=args.bsize, num_workers=0, pin_memory=True)
+    # train_loss = 0.0
 
-            colbert_out, QQ_emb, DD_emb = colbert(Q + Q, D1 + D2, return_embedding=True)
-            colbert_out1, colbert_out2 = colbert_out[: len(Q)], colbert_out[len(Q) :]
+    # PRINT_PERIOD = 100
 
-            out = torch.stack((colbert_out1, colbert_out2), dim=-1)
+    # for batch_idx in tqdm(range(args.maxsteps)):
+    #     Batch = reader.get_minibatch(args.bsize)
+    #     # for batch_idx, Batch in enumerate(tqdm(loader)):
+    #     #     if batch_idx > args.maxsteps:
+    #     #         print_message("#> Finish training at", batch_idx, "...\n\n")
+    #     #         break
+    #     #     Batch = [[q, pos, neg] for (q, pos, neg) in zip(Batch[0], Batch[1], Batch[2])]
+    #     Batch = sorted(Batch, key=lambda x: max(len(x[1]), len(x[2])))
 
-            positive_score, negative_score = (
-                round(colbert_out1.mean().item(), 2),
-                round(colbert_out2.mean().item(), 2),
-            )
+    #     positive_score, negative_score = 0.0, 0.0
+    #     for B_idx in range(args.accumsteps):
+    #         size = args.bsize // args.accumsteps
+    #         B = Batch[B_idx * size : (B_idx + 1) * size]
+    #         Q, D1, D2 = zip(*B)
 
-            # if (B_idx % PRINT_PERIOD) == 0:
-            #     print(
-            #         "#>>>   ",
-            #         positive_score,
-            #         negative_score,
-            #         "\t\t|\t\t",
-            #         positive_score - negative_score,
-            #     )
+    #         colbert_out = colbert(Q + Q, D1 + D2)
+    #         colbert_out1, colbert_out2 = colbert_out[: len(Q)], colbert_out[len(Q) :]
 
-            loss = criterion(out, labels[: out.size(0)])
-            if args.use_ortho:
-                Q_emb, D1_emb, D2_emb = (
-                    QQ_emb[: len(Q)],
-                    DD_emb[: len(Q)],
-                    DD_emb[len(Q) :],
-                )
-                loss_ortho = colbert.ortho_all([Q_emb, D1_emb, D2_emb])
-                loss += loss_ortho
-            loss = loss / args.accumsteps
-            loss.backward()
+    #         out = torch.stack((colbert_out1, colbert_out2), dim=-1)
 
-            train_loss += loss.item()
+    #         positive_score, negative_score = (
+    #             round(colbert_out1.mean().item(), 2),
+    #             round(colbert_out2.mean().item(), 2),
+    #         )
 
-        torch.nn.utils.clip_grad_norm_(colbert.parameters(), 2.0)
+    #         # if (B_idx % PRINT_PERIOD) == 0:
+    #         #     print(
+    #         #         "#>>>   ",
+    #         #         positive_score,
+    #         #         negative_score,
+    #         #         "\t\t|\t\t",
+    #         #         positive_score - negative_score,
+    #         #     )
 
-        optimizer.step()
-        optimizer.zero_grad()
+    #         loss = criterion(out, labels[: out.size(0)])
+    #         loss = loss / args.accumsteps
+    #         loss.backward()
 
-        if (batch_idx % PRINT_PERIOD) == 0:
-            # score
-            print(
-                "#>>>   ",
-                positive_score,
-                negative_score,
-                "\t\t|\t\t",
-                positive_score - negative_score,
-            )
+    #         train_loss += loss.item()
 
-            # loss
-            print_message(batch_idx, train_loss / (batch_idx + 1))
+    #     torch.nn.utils.clip_grad_norm_(colbert.parameters(), 2.0)
 
-        manage_checkpoints(colbert, optimizer, batch_idx + 1, args.output_dir)
+    #     optimizer.step()
+    #     optimizer.zero_grad()
+
+    #     if (batch_idx % PRINT_PERIOD) == 0:
+    #         # score
+    #         print(
+    #             "#>>>   ",
+    #             positive_score,
+    #             negative_score,
+    #             "\t\t|\t\t",
+    #             positive_score - negative_score,
+    #         )
+
+    #         # loss
+    #         print_message(batch_idx, train_loss / (batch_idx + 1))
+
+    #     manage_checkpoints(colbert, optimizer, batch_idx + 1, args.output_dir)
