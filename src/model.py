@@ -196,7 +196,7 @@ class SparseColBERT(ColBERT):
                 dim=-1,
             )
         )
-        return ortho_loss * self.hparams.model.ortho_ratio  # lambda for ortho loss
+        return ortho_loss * 0.01  # lambda for ortho loss
 
     def ortho_all(self, tensors):
         return torch.mean(torch.tensor([self.ortho(t) for t in tensors])).to(DEVICE)
