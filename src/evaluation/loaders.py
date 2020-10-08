@@ -81,7 +81,6 @@ def load_colbert(args):
             k=args.k,
             n=args.n,
             normalize_sparse=args.normalize_sparse,
-            dim=args.dim,
             similarity_metric=args.similarity,
         )
     colbert = colbert.to(DEVICE)
