@@ -154,8 +154,10 @@ class SparseColBERT(ColBERT):
         self.use_nonneg = use_nonneg
         self.use_ortho = use_ortho
 
-    def forward(self, Q, D):
-        return self.score(self.query(Q), self.doc(D))
+    def forward(self, Q, D, return_embedding=False):
+        Q, D = self.query(Q), self.doc(D)
+        scores = self.score(Q, D)
+        return (scores, Q, D) if return_embedding else scores
 
     def query(self, queries):
         Q = super().query(queries)
