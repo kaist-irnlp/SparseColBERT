@@ -6,7 +6,12 @@ import torch.nn.functional as F
 from omegaconf import OmegaConf
 from omegaconf import ListConfig
 
-from transformers import BertPreTrainedModel, BertModel, BertTokenizer
+from transformers import (
+    BertPreTrainedModel,
+    BertModel,
+    BertTokenizer,
+    BertTokenizerFast,
+)
 from src.parameters import DEVICE
 
 
@@ -20,7 +25,7 @@ class ColBERT(BertPreTrainedModel):
         self.doc_maxlen = doc_maxlen
         self.similarity_metric = similarity_metric
 
-        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
         self.skiplist = {w: True for w in string.punctuation}
 
         self.bert = BertModel(config)
