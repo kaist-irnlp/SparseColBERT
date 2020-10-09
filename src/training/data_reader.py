@@ -105,6 +105,8 @@ def train(args):
             n=args.n,
             k=args.k,
             normalize_sparse=args.normalize_sparse,
+            use_nonneg=args.use_nonneg,
+            use_ortho=args.use_ortho,
             similarity_metric=args.similarity,
         )
     colbert = colbert.to(DEVICE)

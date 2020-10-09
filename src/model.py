@@ -159,6 +159,12 @@ class SparseColBERT(ColBERT):
         self.use_nonneg = use_nonneg
         self.use_ortho = use_ortho
 
+        # for debug
+        if use_nonneg:
+            print("Using nonneg")
+        if use_ortho:
+            print("Using ortho")
+
     def forward(self, Q, D, return_embedding=False):
         Q, D = self.query(Q), self.doc(D)
         scores = self.score(Q, D)
