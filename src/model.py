@@ -149,22 +149,22 @@ class SparseColBERT(ColBERT):
         self.is_sparse = True
         self.criterion = nn.CrossEntropyLoss()
 
-    def forward(self, Q_ids, Q_att, D1_ids, D1_att, D1_mask, D2_ids, D2_att, D2_mask):
+    def forward(self, input_Q_ids, input_Q_att, input_D1_ids, input_D1_att, input_D1_mask, input_D2_ids, input_D2_att, input_D2_mask):
         # Q, D1, D2 = zip(*B)
 
         colbert_out = self.score(
             self.query(
-                torch.cat([Q_ids, Q_ids], dim=0), torch.cat([Q_att, Q_att], dim=0)
+                torch.cat([input_Q_ids, input_Q_ids], dim=0), torch.cat([input_Q_att, input_Q_att], dim=0)
             ),
             self.doc(
-                torch.cat([D1_ids, D2_ids], dim=0),
-                torch.cat([D1_att, D2_att], dim=0),
-                torch.cat([D1_mask, D2_mask], dim=0),
+                torch.cat([input_D1_ids, input_D2_ids], dim=0),
+                torch.cat([input_D1_att, input_D2_att], dim=0),
+                torch.cat([input_D1_mask, input_D2_mask], dim=0),
             ),
         )
         colbert_out1, colbert_out2 = (
-            colbert_out[: len(Q_ids)],
-            colbert_out[len(Q_ids) :],
+            colbert_out[: len(input_Q_ids)],
+            colbert_out[len(input_Q_ids) :],
         )
 
         out = torch.stack((colbert_out1, colbert_out2), dim=-1)

@@ -23,14 +23,14 @@ from typing import List, Optional, Union
 
 @dataclass
 class InputExample:
-    Q_ids: List[int]
-    Q_att: List[int]
-    D1_ids: List[int]
-    D1_att: List[int]
-    D1_mask: List[int]
-    D2_ids: List[int]
-    D2_att: List[int]
-    D2_mask: List[int]
+    input_Q_ids: List[int]
+    input_Q_att: List[int]
+    input_D1_ids: List[int]
+    input_D1_att: List[int]
+    input_D1_mask: List[int]
+    input_D2_ids: List[int]
+    input_D2_att: List[int]
+    input_D2_mask: List[int]
 
 
 class TrainDataset(IterableDataset):
@@ -86,14 +86,14 @@ class TrainDatasetforTPU(Dataset):
         D1_ids, D1_att, D1_mask = self._convert_doc_to_ids(D1)
         D2_ids, D2_att, D2_mask = self._convert_doc_to_ids(D2)
         return InputExample(
-            Q_ids=Q_ids,
-            Q_att=Q_att,
-            D1_ids=D1_ids,
-            D1_att=D1_att,
-            D1_mask=D1_mask,
-            D2_ids=D2_ids,
-            D2_att=D2_att,
-            D2_mask=D2_mask,
+            input_Q_ids=Q_ids,
+            input_Q_att=Q_att,
+            input_D1_ids=D1_ids,
+            input_D1_att=D1_att,
+            input_D1_mask=D1_mask,
+            input_D2_ids=D2_ids,
+            input_D2_att=D2_att,
+            input_D2_mask=D2_mask,
         )
         # return InputExample(Q=Q, D1=D1, D2=D2)
         # return InputExample(*raw_ex)
