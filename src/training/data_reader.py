@@ -20,6 +20,7 @@ from src.utils import batch, print_message, save_checkpoint
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
+
 @dataclass
 class InputExample:
     Q_ids: List[int]
@@ -30,6 +31,7 @@ class InputExample:
     D2_ids: List[int]
     D2_att: List[int]
     D2_mask: List[int]
+
 
 class TrainDataset(IterableDataset):
     def __init__(self, data_file):
@@ -58,6 +60,7 @@ class TrainDataset(IterableDataset):
             data = self.data[start:end]
         return iter(data)
 
+
 class TrainDatasetforTPU(Dataset):
     def __init__(self, data_file, query_maxlen, doc_maxlen, numins=10000):
         print_message("#> Training with the triples in", data_file, "...\n\n")
@@ -70,32 +73,55 @@ class TrainDatasetforTPU(Dataset):
 
     def __len__(self):
         return len(self.data)
-        
+
     def _getdata(self, numins):
-        return [self._convert_raw_to_obj(self.reader.readline().split("\t")) for _ in range(numins)]
+        return [
+            self._convert_raw_to_obj(self.reader.readline().split("\t"))
+            for _ in range(numins)
+        ]
 
     def _convert_raw_to_obj(self, raw_ex):
         Q, D1, D2 = raw_ex[0], raw_ex[1], raw_ex[2]
         Q_ids, Q_att = self._convert_query_to_ids(Q)
         D1_ids, D1_att, D1_mask = self._convert_doc_to_ids(D1)
         D2_ids, D2_att, D2_mask = self._convert_doc_to_ids(D2)
-        return InputExample(Q_ids=Q_ids, Q_att=Q_att, D1_ids=D1_ids, D1_att=D1_att, D1_mask = D1_mask, D2_ids=D2_ids, D2_att=D2_att, D2_mask=D2_mask)
-        #return InputExample(Q=Q, D1=D1, D2=D2) 
-        #return InputExample(*raw_ex) 
+        return InputExample(
+            Q_ids=Q_ids,
+            Q_att=Q_att,
+            D1_ids=D1_ids,
+            D1_att=D1_att,
+            D1_mask=D1_mask,
+            D2_ids=D2_ids,
+            D2_att=D2_att,
+            D2_mask=D2_mask,
+        )
+        # return InputExample(Q=Q, D1=D1, D2=D2)
+        # return InputExample(*raw_ex)
 
     def _convert_query_to_ids(self, query):
         query = ["[unused0]"] + self._tokenize(query)
         input_id, attention_mask = self._encode(query, self.query_maxlen)
-        input_id, attention_mask = torch.tensor(input_id, dtype=torch.long), torch.tensor(attention_mask, dtype=torch.long)
+        input_id, attention_mask = (
+            torch.tensor(input_id, dtype=torch.long),
+            torch.tensor(attention_mask, dtype=torch.long),
+        )
         return input_id, attention_mask
 
     def _convert_doc_to_ids(self, doc):
         doc = ["[unused1]"] + self._tokenize(doc)[: self.doc_maxlen - 3]
         length = len(doc) + 2
-        mask = [1] + [x not in self.skiplist for x in doc] + [1] + [0] * (self.doc_maxlen - length)
+        mask = (
+            [1]
+            + [x not in self.skiplist for x in doc]
+            + [1]
+            + [0] * (self.doc_maxlen - length)
+        )
         mask = torch.tensor(mask, dtype=torch.float32)
         input_id, attention_mask = self._encode(doc, self.doc_maxlen)
-        input_id, attention_mask = torch.tensor(input_id, dtype=torch.long), torch.tensor(attention_mask, dtype=torch.long)
+        input_id, attention_mask = (
+            torch.tensor(input_id, dtype=torch.long),
+            torch.tensor(attention_mask, dtype=torch.long),
+        )
         return input_id, attention_mask, mask
 
     def _encode(self, x, max_length):
@@ -175,10 +201,11 @@ def train(args, training_args):
             n=args.n,
             k=args.k,
             normalize_sparse=args.normalize_sparse,
+            use_nonneg=args.use_nonneg,
             dim=args.dim,
             similarity_metric=args.similarity,
         )
-      
+
     train_dataset = TrainDatasetforTPU(args.triples, args.query_maxlen, args.doc_maxlen)
     trainer = Trainer(
         model=colbert,
@@ -187,10 +214,9 @@ def train(args, training_args):
     )
 
     # Training
-    #if training_args.do_train:
+    # if training_args.do_train:
     trainer.train()
     trainer.save_model()
-
 
     # colbert = colbert.to(DEVICE)
     # colbert.train()

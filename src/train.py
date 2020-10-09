@@ -15,11 +15,13 @@ from src.parameters import DEFAULT_DATA_DIR
 from src.training.data_reader import train
 from src.utils import print_message, create_directory
 
+
 @dataclass
 class ModelArguments:
     """
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune from.
     """
+
     lr: float = field(default=3e-06)
     maxsteps: int = field(default=400000)
     bsize: int = field(default=16)
@@ -27,7 +29,7 @@ class ModelArguments:
 
     data_dir: str = field(default=DEFAULT_DATA_DIR)
     triples: str = field(default="triples.train.small.tsv")
-    #output_dir = field(default="outputs.train/")
+    # output_dir = field(default="outputs.train/")
 
     similarity: str = field(default="cosine")
     dim: int = field(default=128)
@@ -36,7 +38,8 @@ class ModelArguments:
     use_dense: bool = field(default=False)
     n: int = field(default=4096)
     k: float = field(default=0.005)
-    normalize_sparse:bool = field(default=True)
+    normalize_sparse: bool = field(default=True)
+    use_nonneg: bool = field(default=False)
 
 
 def main():
@@ -46,7 +49,7 @@ def main():
     # parser = ArgumentParser(
     #     description="Training ColBERT with <query, positive passage, negative passage> triples."
     # )
-    
+
     # parser.add_argument("--lr", dest="lr", default=3e-06, type=float)
     # parser.add_argument("--maxsteps", dest="maxsteps", default=400000, type=int)
     # parser.add_argument("--bsize", dest="bsize", default=16, type=int)
@@ -70,12 +73,12 @@ def main():
     # )
     # parser.add_argument("--output_dir", default="./models/tpu")
     # parser.add_argument("--tpu_num_cores", default=8)
-    #args = parser.parse_args()
+    # args = parser.parse_args()
     parser = HfArgumentParser((ModelArguments, TrainingArguments))
 
     args, training_args = parser.parse_args_into_dataclasses()
     args.input_arguments = args
-    #args = model_args + training_args
+    # args = model_args + training_args
 
     # TODO: Add resume functionality
     # TODO: Save the configuration to the checkpoint.
@@ -92,11 +95,13 @@ def main():
 
     args.triples = os.path.join(args.data_dir, args.triples)
 
-    train(args,training_args)
+    train(args, training_args)
+
 
 def _mp_fn(index):
     # For xla_spawn (TPUs)
     main()
+
 
 if __name__ == "__main__":
     main()

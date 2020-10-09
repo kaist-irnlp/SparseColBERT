@@ -6,6 +6,20 @@ import abc
 from .nupic import *
 
 
+class MinMaxLayer(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, input):
+        _min, _max = (
+            input.min(1, keepdim=True).values,
+            input.max(1, keepdim=True).values,
+        )
+        input -= _min
+        input /= _max - _min
+        return input
+
+
 class WTAModel(nn.Module):
     def __init__(self, hparams):
         super().__init__()
@@ -59,6 +73,8 @@ class WTAModel(nn.Module):
             # self.layers.add_module(f"bn_{i+1}", nn.BatchNorm1d(n[i], affine=False))
             if self.hparams.model.use_activation:
                 self.layers.add_module(f"selu_{i+1}", nn.SELU())
+            if self.hparams.model.use_nonneg:  # minmax norm
+                self.layers.add_module(f"minmax_{i+1}", MinMaxLayer())
             # dropout
             # self.layers.add_module(f"dropout_{i+1}", nn.Dropout(dropout))
             # add kwinner layer

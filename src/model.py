@@ -9,6 +9,7 @@ from omegaconf import ListConfig
 from transformers import BertPreTrainedModel, BertModel, BertTokenizer
 from src.parameters import DEVICE
 
+
 class ColBERT(BertPreTrainedModel):
     def __init__(
         self, config, query_maxlen, doc_maxlen, dim=128, similarity_metric="cosine"
@@ -116,6 +117,7 @@ class SparseColBERT(ColBERT):
         k,
         k_inference_factor=1.0,
         normalize_sparse=True,
+        use_nonneg=False,
         dim=128,
         similarity_metric="cosine",
     ):
@@ -138,6 +140,7 @@ class SparseColBERT(ColBERT):
                     "boost_strength_factor": 0.9,
                     "dense_size": self.dense_size,
                     "normalize_sparse": normalize_sparse,
+                    "use_nonneg": use_nonneg,
                 },
             }
         )
@@ -147,10 +150,22 @@ class SparseColBERT(ColBERT):
         self.criterion = nn.CrossEntropyLoss()
 
     def forward(self, Q_ids, Q_att, D1_ids, D1_att, D1_mask, D2_ids, D2_att, D2_mask):
-        #Q, D1, D2 = zip(*B)
-        
-        colbert_out = self.score(self.query(torch.cat([Q_ids,Q_ids],dim=0), torch.cat([Q_att,Q_att],dim=0)), self.doc(torch.cat([D1_ids,D2_ids],dim=0),torch.cat([D1_att,D2_att],dim=0), torch.cat([D1_mask,D2_mask],dim=0)))
-        colbert_out1, colbert_out2 = colbert_out[: len(Q_ids)], colbert_out[len(Q_ids) :]
+        # Q, D1, D2 = zip(*B)
+
+        colbert_out = self.score(
+            self.query(
+                torch.cat([Q_ids, Q_ids], dim=0), torch.cat([Q_att, Q_att], dim=0)
+            ),
+            self.doc(
+                torch.cat([D1_ids, D2_ids], dim=0),
+                torch.cat([D1_att, D2_att], dim=0),
+                torch.cat([D1_mask, D2_mask], dim=0),
+            ),
+        )
+        colbert_out1, colbert_out2 = (
+            colbert_out[: len(Q_ids)],
+            colbert_out[len(Q_ids) :],
+        )
 
         out = torch.stack((colbert_out1, colbert_out2), dim=-1)
         positive_score, negative_score = (
@@ -162,14 +177,14 @@ class SparseColBERT(ColBERT):
         return loss, out
 
     def query(self, input_ids, attention_mask):
-        #Q = super().query(queries)
+        # Q = super().query(queries)
         Q = self.bert(input_ids, attention_mask=attention_mask)[0]
         Q = self.linear(Q)
         Q = torch.nn.functional.normalize(Q, p=2, dim=-1)
         return self._sparse_maxpool(Q)
 
     def doc(self, input_ids, attention_mask, mask, return_mask=False):
-        #D = super().doc(docs, return_mask)
+        # D = super().doc(docs, return_mask)
 
         D = self.bert(input_ids, attention_mask=attention_mask)[0]
         D = self.linear(D)
