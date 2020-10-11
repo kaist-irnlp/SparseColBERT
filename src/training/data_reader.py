@@ -62,7 +62,7 @@ class TrainDataset(IterableDataset):
 
 
 class TrainDatasetforTPU(Dataset):
-    def __init__(self, data_file, query_maxlen, doc_maxlen, numins=10000):
+    def __init__(self, data_file, query_maxlen, doc_maxlen, numins):
         print_message("#> Training with the triples in", data_file, "...\n\n")
         self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         self.reader = open(data_file, mode="r", encoding="utf-8")
@@ -206,7 +206,7 @@ def train(args, training_args):
             similarity_metric=args.similarity,
         )
 
-    train_dataset = TrainDatasetforTPU(args.triples, args.query_maxlen, args.doc_maxlen)
+    train_dataset = TrainDatasetforTPU(args.triples, args.query_maxlen, args.doc_maxlen, numins=args.training_ins_num)
     trainer = Trainer(
         model=colbert,
         args=training_args,
