@@ -24,13 +24,14 @@ def load_checkpoint(path, model, optimizer=None):
     print_message("#> Loading checkpoint", path)
 
     checkpoint = torch.load(path, map_location='cpu')
-    model.load_state_dict(checkpoint['model_state_dict'])
+    #model.load_state_dict(checkpoint['model_state_dict'])
+    model.load_state_dict(checkpoint)
 
     if optimizer:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-    print_message("#> checkpoint['epoch'] =", checkpoint['epoch'])
-    print_message("#> checkpoint['batch'] =", checkpoint['batch'])
+    #print_message("#> checkpoint['epoch'] =", checkpoint['epoch'])
+    #print_message("#> checkpoint['batch'] =", checkpoint['batch'])
 
     return checkpoint
 

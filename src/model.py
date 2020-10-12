@@ -203,6 +203,19 @@ class SparseColBERT(ColBERT):
 
         D = self._sparse_maxpool(D)
         return (D, mask) if return_mask else D
+    
+    def tokenize_and_query(self, queries):
+        Q = super().query(queries)
+        return self._sparse_maxpool(Q)
+    
+    def tokenize_and_doc(self, docs, return_mask=False):
+        D, mask = None, None
+        if return_mask:
+            D, mask = super().doc(docs, return_mask)
+        else:
+            D = super().doc(docs, return_mask)
+        D = self._sparse_maxpool(D)
+        return (D, mask) if return_mask else D
 
     def _sparse_maxpool(self, T):
         T_sparse = []
