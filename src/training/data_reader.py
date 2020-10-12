@@ -75,10 +75,7 @@ class TrainDatasetforTPU(Dataset):
         return len(self.data)
 
     def _getdata(self, numins):
-        return [
-            self._convert_raw_to_obj(self.reader.readline().split("\t"))
-            for _ in range(numins)
-        ]
+        return [self.reader.readline().split("\t") for _ in range(numins)]
 
     def _convert_raw_to_obj(self, raw_ex):
         Q, D1, D2 = raw_ex[0], raw_ex[1], raw_ex[2]
@@ -142,7 +139,7 @@ class TrainDatasetforTPU(Dataset):
         return self.tokenizer.tokenize(text)
 
     def __getitem__(self, i):
-        return self.data[i]
+        return self._convert_raw_to_obj(self.data[i])
 
 
 class TrainReader:
