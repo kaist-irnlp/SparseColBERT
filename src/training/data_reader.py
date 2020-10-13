@@ -199,7 +199,6 @@ def train(args, training_args):
             k=args.k,
             normalize_sparse=args.normalize_sparse,
             use_nonneg=args.use_nonneg,
-            dim=args.dim,
             similarity_metric=args.similarity,
         )
 

@@ -32,7 +32,6 @@ class ModelArguments:
     # output_dir = field(default="outputs.train/")
 
     similarity: str = field(default="cosine")
-    dim: int = field(default=128)
     query_maxlen: int = field(default=32)
     doc_maxlen: int = field(default=180)
     use_dense: bool = field(default=False)

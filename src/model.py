@@ -118,10 +118,10 @@ class SparseColBERT(ColBERT):
         k_inference_factor=1.0,
         normalize_sparse=True,
         use_nonneg=False,
-        dim=128,
         similarity_metric="cosine",
     ):
-        super().__init__(config, query_maxlen, doc_maxlen, dim, similarity_metric)
+        dim_not_used = 128
+        super().__init__(config, query_maxlen, doc_maxlen, dim_not_used, similarity_metric)
         # modification
         n = n if type(n) in (ListConfig, list) else [n]
         k = k if type(k) in (ListConfig, list) else [k]
