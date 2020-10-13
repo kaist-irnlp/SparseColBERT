@@ -189,15 +189,6 @@ class SparseColBERT(ColBERT):
         D = self.bert(input_ids, attention_mask=attention_mask)[0]
         D = self.linear(D)
 
-        # [CLS] .. d ... [SEP] [PAD] ... [PAD]
-        # mask = [
-        #     [1]
-        #     + [x not in self.skiplist for x in d]
-        #     + [1]
-        #     + [0] * (d_max_length - length)
-        #     for d, length in zip(docs, lengths)
-        # ]
-
         D = D * mask.unsqueeze(2)
         D = torch.nn.functional.normalize(D, p=2, dim=-1)
 
@@ -232,66 +223,3 @@ class SparseColBERT(ColBERT):
 
         assert self.similarity_metric == "l2"
         return F.mse_loss(Q, D, reduction="none")
-
-    # def query(self, queries):
-    #     queries = [["[unused0]"] + self._tokenize(q) for q in queries]
-
-    #     input_ids, attention_mask = zip(
-    #         *[self._encode(x, self.query_maxlen) for x in queries]
-    #     )
-    #     input_ids, attention_mask = self._tensorize(input_ids), self._tensorize(
-    #         attention_mask
-    #     )
-
-    #     Q = self.bert(input_ids, attention_mask=attention_mask)[0]
-    #     Q = self.linear(Q)
-
-    #     return torch.nn.functional.normalize(Q, p=2, dim=2)
-
-    # def doc(self, docs, return_mask=False):
-    #     docs = [["[unused1]"] + self._tokenize(d)[: self.doc_maxlen - 3] for d in docs]
-
-    #     lengths = [len(d) + 2 for d in docs]  # +2 for [CLS], [SEP]
-    #     d_max_length = max(lengths)
-
-    #     input_ids, attention_mask = zip(*[self._encode(x, d_max_length) for x in docs])
-    #     input_ids, attention_mask = self._tensorize(input_ids), self._tensorize(
-    #         attention_mask
-    #     )
-
-    #     D = self.bert(input_ids, attention_mask=attention_mask)[0]
-    #     D = self.linear(D)
-
-    #     # [CLS] .. d ... [SEP] [PAD] ... [PAD]
-    #     mask = [
-    #         [1]
-    #         + [x not in self.skiplist for x in d]
-    #         + [1]
-    #         + [0] * (d_max_length - length)
-    #         for d, length in zip(docs, lengths)
-    #     ]
-
-    #     D = D * torch.tensor(mask, device=DEVICE, dtype=torch.float32).unsqueeze(2)
-    #     D = torch.nn.functional.normalize(D, p=2, dim=2)
-
-    #     return (D, mask) if return_mask else D
-
-    # def _tokenize(self, text):
-    #     if type(text) == list:
-    #         return text
-
-    #     return self.tokenizer.tokenize(text)
-
-    # def _encode(self, x, max_length):
-    #     input_ids = self.tokenizer.encode(
-    #         x, add_special_tokens=True, max_length=max_length
-    #     )
-
-    #     padding_length = max_length - len(input_ids)
-    #     attention_mask = [1] * len(input_ids) + [0] * padding_length
-    #     input_ids = input_ids + [103] * padding_length
-
-    #     return input_ids, attention_mask
-
-    # def _tensorize(self, l):
-    #     return torch.tensor(l, dtype=torch.long, device=DEVICE)
