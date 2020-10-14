@@ -69,10 +69,12 @@ class TrainDatasetforTPU(Dataset):
         self.query_maxlen = query_maxlen
         self.doc_maxlen = doc_maxlen
         self.skiplist = {w: True for w in string.punctuation}
-        self.data = self._getdata(numins)
+        self.numins = numins
+        #self.data = self._getdata(numins)
 
     def __len__(self):
-        return len(self.data)
+        return self.numins
+        #return len(self.data)
 
     def _getdata(self, numins):
         return [self.reader.readline().split("\t") for _ in range(numins)]
@@ -139,7 +141,8 @@ class TrainDatasetforTPU(Dataset):
         return self.tokenizer.tokenize(text)
 
     def __getitem__(self, i):
-        return self._convert_raw_to_obj(self.data[i])
+        return self._convert_raw_to_obj(self.reader.readline().split("\t"))
+        #return self._convert_raw_to_obj(self.data[i])
 
 
 class TrainReader:
