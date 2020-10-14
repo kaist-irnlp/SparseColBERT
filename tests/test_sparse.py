@@ -27,6 +27,9 @@ def hparams():
 
 
 def test_variable_k(hparams):
+    """
+        See `SparseColBERT._sparse_maxpool` together
+    """
     # init
     wta = WTAModel(hparams)
     token_count = 4

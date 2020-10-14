@@ -207,6 +207,9 @@ class SparseColBERT(ColBERT):
         return (D, mask) if return_mask else D
 
     def _sparse_maxpool(self, T, k_mat=None):
+        """
+            k_mat.shape = (batch_size, num_tokens)
+        """
         T_sparse = []
         for i, t in enumerate(torch.unbind(T)):
             k_vec = k_mat[i] if (k_mat is not None) else None
