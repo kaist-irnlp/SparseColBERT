@@ -25,7 +25,7 @@ class ModelArguments:
     lr: float = field(default=3e-06)
     maxsteps: int = field(default=400000)
     bsize: int = field(default=16)
-    accumsteps: int = field(default=4)
+    accumsteps: int = field(default=8)
 
     data_dir: str = field(default=DEFAULT_DATA_DIR)
     triples: str = field(default="triples.train.small.tsv")
