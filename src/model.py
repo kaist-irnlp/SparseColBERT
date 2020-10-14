@@ -122,7 +122,9 @@ class SparseColBERT(ColBERT):
         similarity_metric="cosine",
     ):
         dim_not_used = 128
-        super().__init__(config, query_maxlen, doc_maxlen, dim_not_used, similarity_metric)
+        super().__init__(
+            config, query_maxlen, doc_maxlen, dim_not_used, similarity_metric
+        )
         self.n = n
         self.k = k
         self.dense_size = self.bert.embeddings.word_embeddings.weight.shape[1]
@@ -147,12 +149,23 @@ class SparseColBERT(ColBERT):
         self.is_sparse = True
         self.criterion = nn.CrossEntropyLoss()
 
-    def forward(self, input_Q_ids, input_Q_att, input_D1_ids, input_D1_att, input_D1_mask, input_D2_ids, input_D2_att, input_D2_mask):
+    def forward(
+        self,
+        input_Q_ids,
+        input_Q_att,
+        input_D1_ids,
+        input_D1_att,
+        input_D1_mask,
+        input_D2_ids,
+        input_D2_att,
+        input_D2_mask,
+    ):
         # Q, D1, D2 = zip(*B)
 
         colbert_out = self.score(
             self.query(
-                torch.cat([input_Q_ids, input_Q_ids], dim=0), torch.cat([input_Q_att, input_Q_att], dim=0)
+                torch.cat([input_Q_ids, input_Q_ids], dim=0),
+                torch.cat([input_Q_att, input_Q_att], dim=0),
             ),
             self.doc(
                 torch.cat([input_D1_ids, input_D2_ids], dim=0),
@@ -192,11 +205,11 @@ class SparseColBERT(ColBERT):
 
         D = self._sparse_maxpool(D)
         return (D, mask) if return_mask else D
-    
+
     def tokenize_and_query(self, queries):
         Q = super().query(queries)
         return self._sparse_maxpool(Q)
-    
+
     def tokenize_and_doc(self, docs, return_mask=False):
         D, mask = None, None
         if return_mask:
@@ -208,13 +221,18 @@ class SparseColBERT(ColBERT):
 
     def _sparse_maxpool(self, T, k_mat=None):
         """
-            k_mat.shape = (batch_size, num_tokens)
+        k_mat.shape = (batch_size, num_tokens)
         """
         T_sparse = []
-        for i, t in enumerate(torch.unbind(T)):
-            k_vec = k_mat[i] if (k_mat is not None) else None
-            t_sparse = torch.max(self.sparse(t, k_vec), dim=0).values
-            T_sparse.append(t_sparse)
+        if k_mat is None:  # static k
+            for t in torch.unbind(T):
+                t_sparse = torch.max(self.sparse(t), dim=0).values
+                T_sparse.append(t_sparse)
+        else:
+            for t, k_vec in zip(torch.unbind(T), k_mat):
+                t_sparse = torch.max(self.sparse(t, k_vec), dim=0).values
+                T_sparse.append(t_sparse)
+
         T_sparse = torch.stack(T_sparse)
         return T_sparse
 
