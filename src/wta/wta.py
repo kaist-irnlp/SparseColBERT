@@ -50,8 +50,8 @@ class WTAModel(nn.Module):
 
     def _init_layers(self):
         # define params
-        n = self.hparams.n
-        k = self.hparams.k
+        n = self.hparams.model.n
+        k = self.hparams.model.k
         weight_sparsity = self.hparams.model.weight_sparsity
         normalize_weights = self.hparams.model.normalize_weights
         k_inference_factor = self.hparams.model.k_inference_factor

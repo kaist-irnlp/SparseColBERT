@@ -128,9 +128,9 @@ class SparseColBERT(ColBERT):
         self.dense_size = self.bert.embeddings.word_embeddings.weight.shape[1]
         wta_params = OmegaConf.create(
             {
-                "n": n,
-                "k": k,
                 "model": {
+                    "n": n,
+                    "k": k,
                     "weight_sparsity": 0.3,
                     "normalize_weights": True,
                     "k_inference_factor": k_inference_factor,
