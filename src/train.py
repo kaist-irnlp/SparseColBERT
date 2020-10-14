@@ -25,14 +25,13 @@ class ModelArguments:
     lr: float = field(default=3e-06)
     maxsteps: int = field(default=400000)
     bsize: int = field(default=16)
-    accumsteps: int = field(default=4)
+    accumsteps: int = field(default=8)
 
     data_dir: str = field(default=DEFAULT_DATA_DIR)
     triples: str = field(default="triples.train.small.tsv")
     # output_dir = field(default="outputs.train/")
 
     similarity: str = field(default="cosine")
-    dim: int = field(default=128)
     query_maxlen: int = field(default=32)
     doc_maxlen: int = field(default=180)
     use_dense: bool = field(default=False)
@@ -40,6 +39,7 @@ class ModelArguments:
     k: float = field(default=0.005)
     normalize_sparse: bool = field(default=True)
     use_nonneg: bool = field(default=False)
+    training_ins_num: int = field(default=10000)
 
 
 def main():

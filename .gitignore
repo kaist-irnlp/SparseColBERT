@@ -142,3 +142,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+data_download/qrels.dev.small.tsv
+data_download/top1000.dev
+model/pytorch_model.bin

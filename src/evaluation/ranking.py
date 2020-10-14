@@ -10,12 +10,12 @@ from src.evaluation.metrics import Metrics
 
 def rerank(args, query, pids, passages, index=None):
     colbert = args.colbert
-    Q = colbert.query([query])
+    Q = colbert.tokenize_and_query([query])
 
     if index is None:
         tokenized_passages = list(args.pool.map(colbert.tokenizer.tokenize, passages))
         scores = [
-            colbert.score(Q, colbert.doc(D)).cpu()
+            colbert.score(Q, colbert.tokenize_and_doc(D)).cpu()
             for D in batch(tokenized_passages, args.bsize)
         ]
         scores = torch.cat(scores).sort(descending=True)
@@ -108,8 +108,8 @@ def evaluate(args, index=None):
 
                     metrics.print_metrics(query_idx)
 
-                print_message(
-                    "#> checkpoint['batch'] =", args.checkpoint["batch"], "\n"
-                )
+                #print_message(
+                #    "#> checkpoint['batch'] =", args.checkpoint["batch"], "\n"
+                #)
                 print("output_path =", output_path)
                 print("\n\n")

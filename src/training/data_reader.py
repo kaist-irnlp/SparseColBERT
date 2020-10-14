@@ -23,14 +23,14 @@ from typing import List, Optional, Union
 
 @dataclass
 class InputExample:
-    Q_ids: List[int]
-    Q_att: List[int]
-    D1_ids: List[int]
-    D1_att: List[int]
-    D1_mask: List[int]
-    D2_ids: List[int]
-    D2_att: List[int]
-    D2_mask: List[int]
+    input_Q_ids: List[int]
+    input_Q_att: List[int]
+    input_D1_ids: List[int]
+    input_D1_att: List[int]
+    input_D1_mask: List[int]
+    input_D2_ids: List[int]
+    input_D2_att: List[int]
+    input_D2_mask: List[int]
 
 
 class TrainDataset(IterableDataset):
@@ -62,23 +62,22 @@ class TrainDataset(IterableDataset):
 
 
 class TrainDatasetforTPU(Dataset):
-    def __init__(self, data_file, query_maxlen, doc_maxlen, numins=10000):
+    def __init__(self, data_file, query_maxlen, doc_maxlen, numins):
         print_message("#> Training with the triples in", data_file, "...\n\n")
         self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         self.reader = open(data_file, mode="r", encoding="utf-8")
         self.query_maxlen = query_maxlen
         self.doc_maxlen = doc_maxlen
         self.skiplist = {w: True for w in string.punctuation}
-        self.data = self._getdata(numins)
+        self.numins = numins
+        #self.data = self._getdata(numins)
 
     def __len__(self):
-        return len(self.data)
+        return self.numins
+        #return len(self.data)
 
     def _getdata(self, numins):
-        return [
-            self._convert_raw_to_obj(self.reader.readline().split("\t"))
-            for _ in range(numins)
-        ]
+        return [self.reader.readline().split("\t") for _ in range(numins)]
 
     def _convert_raw_to_obj(self, raw_ex):
         Q, D1, D2 = raw_ex[0], raw_ex[1], raw_ex[2]
@@ -86,14 +85,14 @@ class TrainDatasetforTPU(Dataset):
         D1_ids, D1_att, D1_mask = self._convert_doc_to_ids(D1)
         D2_ids, D2_att, D2_mask = self._convert_doc_to_ids(D2)
         return InputExample(
-            Q_ids=Q_ids,
-            Q_att=Q_att,
-            D1_ids=D1_ids,
-            D1_att=D1_att,
-            D1_mask=D1_mask,
-            D2_ids=D2_ids,
-            D2_att=D2_att,
-            D2_mask=D2_mask,
+            input_Q_ids=Q_ids,
+            input_Q_att=Q_att,
+            input_D1_ids=D1_ids,
+            input_D1_att=D1_att,
+            input_D1_mask=D1_mask,
+            input_D2_ids=D2_ids,
+            input_D2_att=D2_att,
+            input_D2_mask=D2_mask,
         )
         # return InputExample(Q=Q, D1=D1, D2=D2)
         # return InputExample(*raw_ex)
@@ -142,7 +141,8 @@ class TrainDatasetforTPU(Dataset):
         return self.tokenizer.tokenize(text)
 
     def __getitem__(self, i):
-        return self.data[i]
+        return self._convert_raw_to_obj(self.reader.readline().split("\t"))
+        #return self._convert_raw_to_obj(self.data[i])
 
 
 class TrainReader:
@@ -202,11 +202,10 @@ def train(args, training_args):
             k=args.k,
             normalize_sparse=args.normalize_sparse,
             use_nonneg=args.use_nonneg,
-            dim=args.dim,
             similarity_metric=args.similarity,
         )
 
-    train_dataset = TrainDatasetforTPU(args.triples, args.query_maxlen, args.doc_maxlen)
+    train_dataset = TrainDatasetforTPU(args.triples, args.query_maxlen, args.doc_maxlen, numins=args.training_ins_num)
     trainer = Trainer(
         model=colbert,
         args=training_args,
