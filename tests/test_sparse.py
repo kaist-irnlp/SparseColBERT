@@ -10,8 +10,8 @@ from src.wta import WTAModel
 def hparams():
     return OmegaConf.create(
         {
-            "n": [2048],
-            "k": [0.005],
+            "n": 2048,
+            "k": 0.005,
             "model": {
                 "weight_sparsity": 0.3,
                 "normalize_weights": True,
@@ -25,6 +25,16 @@ def hparams():
         }
     )
 
+def test_variable_k(hparams):
+    # init
+    wta = WTAModel(hparams)
+    token_count = 4
+    # input and k_vec
+    input = torch.randn(token_count, hparams.model.dense_size)
+    k_vec = torch.tensor([0.1, 0.2, 0.01, 0.05])
+    input_sparse = wta(input, k_vec)
+    for si, ki in zip(input_sparse, k_vec):
+        assert len(si.nonzero()) == int(hparams.n * ki)
 
 def test_wta_nonneg(hparams):
     # normalized, does not allow negativces

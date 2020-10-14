@@ -230,13 +230,17 @@ class KWinners(KWinnersBase):
         self.k_inference = int(self.k * self.k_inference_factor)
         self.register_buffer("duty_cycle", torch.zeros(self.n))
 
-    def forward(self, x):
+    def forward(self, x, k=None):
+        _k = self.k if (k is None) else int(self.n * k)
+        _k_inference = (
+            self.k_inference if (k is None) else (_k * self.k_inference_factor)
+        )
 
         if self.training:
             x = F.kwinners(
                 x,
                 self.duty_cycle,
-                self.k,
+                _k,  # for varialble k
                 self._cached_boost_strength,
                 self.break_ties,
                 self.relu,
@@ -247,7 +251,7 @@ class KWinners(KWinnersBase):
             x = F.kwinners(
                 x,
                 self.duty_cycle,
-                self.k_inference,
+                _k_inference,  # for varialble k
                 self._cached_boost_strength,
                 self.break_ties,
                 self.relu,

@@ -1,3 +1,4 @@
+from torch._C import dtype
 from .wta import WTAModel
 import string
 import torch
@@ -122,9 +123,7 @@ class SparseColBERT(ColBERT):
         similarity_metric="cosine",
     ):
         super().__init__(config, query_maxlen, doc_maxlen, dim, similarity_metric)
-        # modification
-        n = n if type(n) in (ListConfig, list) else [n]
-        k = k if type(k) in (ListConfig, list) else [k]
+        # take hparams
         self.n = n
         self.k = k
         self.dense_size = self.bert.embeddings.word_embeddings.weight.shape[1]
@@ -172,7 +171,7 @@ class SparseColBERT(ColBERT):
             round(colbert_out1.mean().item(), 2),
             round(colbert_out2.mean().item(), 2),
         )
-        labels = torch.zeros_like(out)
+        labels = torch.zeros_like(out, dtype=torch.long)
         loss = self.criterion(out, labels[:, 0])
         return loss, out
 
@@ -204,10 +203,11 @@ class SparseColBERT(ColBERT):
         D = self._sparse_maxpool(D)
         return (D, mask) if return_mask else D
 
-    def _sparse_maxpool(self, T):
+    def _sparse_maxpool(self, T, k_mat=None):
         T_sparse = []
-        for t in torch.unbind(T):
-            t_sparse = torch.max(self.sparse(t), dim=0).values
+        for i, t in enumerate(torch.unbind(T)):
+            k_vec = k_mat[i] if (k_mat is not None) else None
+            t_sparse = torch.max(self.sparse(t, k_vec), dim=0).values
             T_sparse.append(t_sparse)
         T_sparse = torch.stack(T_sparse)
         return T_sparse

@@ -28,8 +28,18 @@ class WTAModel(nn.Module):
         # init weights
         self._init_layers()
 
-    def forward(self, x):
-        features = self.layers(x)
+    def forward(self, x, k_vec=None):
+        x = self.pre_sparse(x)
+
+        if k_vec is None:
+            features = self.sparse(x)
+        else:  # variable k
+            features = []
+            for xi, ki in zip(x, k_vec):
+                fi = self.sparse(xi.unsqueeze(dim=0), ki)
+                features.append(fi)
+            features = torch.cat(features)
+
         if self.hparams.model.normalize_sparse:
             features = F.normalize(features, dim=-1)
         return features
@@ -38,58 +48,39 @@ class WTAModel(nn.Module):
         self.apply(update_boost_strength)
         self.apply(rezero_weights)
 
-    @property
-    def entropy(self):
-        return self.kwinners[-1].entropy()
-
-    @property
-    def max_entropy(self):
-        return self.kwinners[-1].max_entropy()
-
-    @property
-    def boost_strength(self):
-        return self.kwinners[-1].boost_strength
-
     def _init_layers(self):
-        self.layers = nn.Sequential()
-        self.kwinners = []  # for logging
-
+        # define params
         n = self.hparams.n
         k = self.hparams.k
         weight_sparsity = self.hparams.model.weight_sparsity
         normalize_weights = self.hparams.model.normalize_weights
-        # dropout = self.hparams.model.dropout
         k_inference_factor = self.hparams.model.k_inference_factor
         boost_strength = self.hparams.model.boost_strength
         boost_strength_factor = self.hparams.model.boost_strength_factor
-        next_input_size = self.hparams.model.dense_size
-        for i in range(len(n)):
-            linear = nn.Linear(next_input_size, n[i])
-            if 0 < weight_sparsity < 1:
-                linear = SparseWeights(linear, sparsity=weight_sparsity)
-                if normalize_weights:
-                    linear.apply(normalize_sparse_weights)
-            self.layers.add_module(f"linear_{i+1}", linear)
-            # self.layers.add_module(f"bn_{i+1}", nn.BatchNorm1d(n[i], affine=False))
-            if self.hparams.model.use_activation:
-                self.layers.add_module(f"selu_{i+1}", nn.SELU())
-            if self.hparams.model.use_nonneg:  # minmax norm
-                self.layers.add_module(f"minmax_{i+1}", MinMaxLayer())
-            # dropout
-            # self.layers.add_module(f"dropout_{i+1}", nn.Dropout(dropout))
-            # add kwinner layer
-            kwinner = KWinners(
-                n=n[i],
-                percent_on=k[i],
-                k_inference_factor=k_inference_factor,
-                boost_strength=boost_strength,
-                boost_strength_factor=boost_strength_factor,
-                break_ties=True,
-                relu=False,
-                inplace=False,
-            )
-            self.layers.add_module(f"kwinner_{i+1}", kwinner)
-            self.kwinners.append(kwinner)
-            next_input_size = n[i]
-        # save output_size
-        self.output_size = next_input_size
+        input_size = self.hparams.model.dense_size
+
+        # build pre-sparse
+        self.pre_sparse = nn.Sequential()
+        linear = nn.Linear(input_size, n)
+        if 0 < weight_sparsity < 1:
+            linear = SparseWeights(linear, sparsity=weight_sparsity)
+            if normalize_weights:
+                linear.apply(normalize_sparse_weights)
+        self.pre_sparse.add_module(f"linear", linear)
+        if self.hparams.model.use_nonneg:  # minmax norm
+            self.pre_sparse.add_module(f"minmax", MinMaxLayer())
+
+        # build sparse
+        self.sparse = KWinners(
+            n=n,
+            percent_on=k,
+            k_inference_factor=k_inference_factor,
+            boost_strength=boost_strength,
+            boost_strength_factor=boost_strength_factor,
+            break_ties=True,
+            relu=False,
+            inplace=False,
+        )
+
+        # build layers = pre_sparse + sparse
+        self.layers = nn.Sequential(self.pre_sparse, self.sparse)
