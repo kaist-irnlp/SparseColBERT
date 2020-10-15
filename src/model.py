@@ -228,7 +228,7 @@ class SparseColBERT(ColBERT):
             for t in torch.unbind(T):
                 t_sparse = torch.max(self.sparse(t), dim=0).values
                 T_sparse.append(t_sparse)
-        else:
+        else:  # dynamic k
             for t, k_vec in zip(torch.unbind(T), k_mat):
                 t_sparse = torch.max(self.sparse(t, k_vec), dim=0).values
                 T_sparse.append(t_sparse)
