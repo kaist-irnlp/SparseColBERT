@@ -161,18 +161,16 @@ class SparseColBERT(ColBERT):
         input_D2_mask,
     ):
         # Q, D1, D2 = zip(*B)
-
-        colbert_out = self.score(
-            self.query(
-                torch.cat([input_Q_ids, input_Q_ids], dim=0),
-                torch.cat([input_Q_att, input_Q_att], dim=0),
-            ),
-            self.doc(
-                torch.cat([input_D1_ids, input_D2_ids], dim=0),
-                torch.cat([input_D1_att, input_D2_att], dim=0),
-                torch.cat([input_D1_mask, input_D2_mask], dim=0),
-            ),
+        Q = self.query(
+            torch.cat([input_Q_ids, input_Q_ids], dim=0),
+            torch.cat([input_Q_att, input_Q_att], dim=0),
         )
+        D = self.doc(
+            torch.cat([input_D1_ids, input_D2_ids], dim=0),
+            torch.cat([input_D1_att, input_D2_att], dim=0),
+            torch.cat([input_D1_mask, input_D2_mask], dim=0),
+        )
+        colbert_out = self.score(Q, D)
         colbert_out1, colbert_out2 = (
             colbert_out[: len(input_Q_ids)],
             colbert_out[len(input_Q_ids) :],
@@ -184,7 +182,12 @@ class SparseColBERT(ColBERT):
             round(colbert_out2.mean().item(), 2),
         )
         labels = torch.zeros_like(out, dtype=torch.long)
-        loss = self.criterion(out, labels[:, 0])
+        loss_contrast = self.criterion(out, labels[:, 0])
+
+        # ortho
+        loss_ortho = self.ortho_all([Q, D]) if self.hparams.model.use_ortho else 0
+        loss = loss_contrast + loss_ortho
+
         return loss, out
 
     def query(self, input_ids, attention_mask):
@@ -243,3 +246,17 @@ class SparseColBERT(ColBERT):
 
         assert self.similarity_metric == "l2"
         return F.mse_loss(Q, D, reduction="none")
+
+    def ortho(self, T):
+        ortho_loss = torch.mean(
+            torch.norm(
+                torch.matmul(T, T.T) - torch.eye(T.shape[0]),
+                p=2,
+                dim=-1,
+            )
+        )
+        ortho_ratio = 0.01  # lambda for ortho loss
+        return ortho_loss * ortho_ratio
+
+    def ortho_all(self, tensors):
+        return torch.mean(torch.tensor([self.ortho(t) for t in tensors]))
