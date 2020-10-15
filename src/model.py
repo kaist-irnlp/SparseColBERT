@@ -150,6 +150,7 @@ class SparseColBERT(ColBERT):
         self.sparse = WTAModel(wta_params)
         self.is_sparse = True
         self.criterion = nn.CrossEntropyLoss()
+        self.use_ortho = use_ortho
 
     def forward(
         self,
@@ -187,7 +188,7 @@ class SparseColBERT(ColBERT):
         loss_contrast = self.criterion(out, labels[:, 0])
 
         # ortho
-        loss_ortho = self.ortho_all([Q, D]) if self.hparams.model.use_ortho else 0
+        loss_ortho = self.ortho_all([Q, D]) if self.use_ortho else 0
         loss = loss_contrast + loss_ortho
 
         return loss, out
