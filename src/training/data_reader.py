@@ -70,11 +70,11 @@ class TrainDatasetforTPU(Dataset):
         self.doc_maxlen = doc_maxlen
         self.skiplist = {w: True for w in string.punctuation}
         self.numins = numins
-        #self.data = self._getdata(numins)
+        # self.data = self._getdata(numins)
 
     def __len__(self):
         return self.numins
-        #return len(self.data)
+        # return len(self.data)
 
     def _getdata(self, numins):
         return [self.reader.readline().split("\t") for _ in range(numins)]
@@ -142,7 +142,7 @@ class TrainDatasetforTPU(Dataset):
 
     def __getitem__(self, i):
         return self._convert_raw_to_obj(self.reader.readline().split("\t"))
-        #return self._convert_raw_to_obj(self.data[i])
+        # return self._convert_raw_to_obj(self.data[i])
 
 
 class TrainReader:
@@ -202,10 +202,13 @@ def train(args, training_args):
             k=args.k,
             normalize_sparse=args.normalize_sparse,
             use_nonneg=args.use_nonneg,
+            use_ortho=args.use_ortho,
             similarity_metric=args.similarity,
         )
 
-    train_dataset = TrainDatasetforTPU(args.triples, args.query_maxlen, args.doc_maxlen, numins=args.training_ins_num)
+    train_dataset = TrainDatasetforTPU(
+        args.triples, args.query_maxlen, args.doc_maxlen, numins=args.training_ins_num
+    )
     trainer = Trainer(
         model=colbert,
         args=training_args,

@@ -39,6 +39,7 @@ class ModelArguments:
     k: float = field(default=0.005)
     normalize_sparse: bool = field(default=True)
     use_nonneg: bool = field(default=False)
+    use_ortho: bool = field(default=False)
     training_ins_num: int = field(default=10000)
 
 
