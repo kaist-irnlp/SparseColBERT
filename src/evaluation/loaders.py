@@ -80,6 +80,7 @@ def load_colbert(args):
             doc_maxlen=args.doc_maxlen,
             k=args.k,
             n=args.n,
+            use_nonneg=args.use_nonneg,
             normalize_sparse=args.normalize_sparse,
             similarity_metric=args.similarity,
         )
