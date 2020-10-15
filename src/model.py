@@ -119,6 +119,7 @@ class SparseColBERT(ColBERT):
         k_inference_factor=1.0,
         normalize_sparse=True,
         use_nonneg=False,
+        use_ortho=False,
         similarity_metric="cosine",
     ):
         dim_not_used = 128
@@ -141,6 +142,7 @@ class SparseColBERT(ColBERT):
                     "dense_size": self.dense_size,
                     "normalize_sparse": normalize_sparse,
                     "use_nonneg": use_nonneg,
+                    "use_ortho": use_ortho,
                 },
             }
         )
