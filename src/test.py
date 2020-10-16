@@ -20,8 +20,8 @@ def main():
     )
 
     parser.add_argument("--checkpoint", dest="checkpoint", required=True)
-    parser.add_argument("--topk", dest="topK", required=True)
-    parser.add_argument("--qrels", dest="qrels", default=None)
+    parser.add_argument("--topk", dest="topK", default="top1000.dev")
+    parser.add_argument("--qrels", dest="qrels", default="qrels.dev.small.tsv")
     parser.add_argument(
         "--shortcircuit", dest="shortcircuit", default=False, action="store_true"
     )
