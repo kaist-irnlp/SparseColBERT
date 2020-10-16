@@ -40,6 +40,7 @@ class ModelArguments:
     normalize_sparse: bool = field(default=True)
     use_nonneg: bool = field(default=False)
     training_ins_num: int = field(default=10000)
+    original_checkpoint: str = field(default=None)
 
 
 def main():
