@@ -41,6 +41,7 @@ class ModelArguments:
     use_nonneg: bool = field(default=False)
     training_ins_num: int = field(default=10000)
     original_checkpoint: str = field(default=None)
+    training_ins_start_from: int = field(default=None)
 
 
 def main():
