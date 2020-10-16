@@ -20,20 +20,17 @@ def main():
     )
 
     parser.add_argument("--checkpoint", dest="checkpoint", required=True)
-    parser.add_argument("--topk", dest="topK", required=True)
-    parser.add_argument("--qrels", dest="qrels", default=None)
+    parser.add_argument("--topk", dest="topK", default="top1000.dev")
+    parser.add_argument("--qrels", dest="qrels", default="qrels.dev.small.tsv")
     parser.add_argument(
         "--shortcircuit", dest="shortcircuit", default=False, action="store_true"
     )
 
-    parser.add_argument("--data_dir", dest="data_dir",
-                        default=DEFAULT_DATA_DIR)
-    parser.add_argument("--output_dir", dest="output_dir",
-                        default="outputs.test/")
+    parser.add_argument("--data_dir", dest="data_dir", default=DEFAULT_DATA_DIR)
+    parser.add_argument("--output_dir", dest="output_dir", default="outputs.test/")
 
     parser.add_argument("--bsize", dest="bsize", default=128, type=int)
-    parser.add_argument("--subsample", dest="subsample",
-                        default=None)  # TODO: Add this
+    parser.add_argument("--subsample", dest="subsample", default=None)  # TODO: Add this
     parser.add_argument("--dense", action="store_true")
 
     # TODO: For the following four arguments, default should be None. If None, they should be loaded from checkpoint.
@@ -41,18 +38,14 @@ def main():
         "--similarity", dest="similarity", default="cosine", choices=["cosine", "l2"]
     )
     parser.add_argument("--dim", dest="dim", default=128, type=int)
-    parser.add_argument(
-        "--query_maxlen", dest="query_maxlen", default=32, type=int)
-    parser.add_argument("--doc_maxlen", dest="doc_maxlen",
-                        default=180, type=int)
+    parser.add_argument("--query_maxlen", dest="query_maxlen", default=32, type=int)
+    parser.add_argument("--doc_maxlen", dest="doc_maxlen", default=180, type=int)
     parser.add_argument("--n", type=int, required=True)
     parser.add_argument("--k", type=float, required=True)
     parser.add_argument(
         "--dont_normalize_sparse", dest="normalize_sparse", action="store_false"
     )
-    parser.add_argument(
-        "--use_nonneg", action="store_true"
-    )
+    parser.add_argument("--use_nonneg", action="store_true")
 
     args = parser.parse_args()
     args.input_arguments = args
