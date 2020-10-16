@@ -20,12 +20,12 @@ def save_checkpoint(path, epoch_idx, mb_idx, model, optimizer):
     torch.save(checkpoint, path)
 
 
-def load_checkpoint(path, model, optimizer=None):
+def load_checkpoint(path, model, optimizer=None, non_strict_load = True):
     print_message("#> Loading checkpoint", path)
 
     checkpoint = torch.load(path, map_location='cpu')
     #model.load_state_dict(checkpoint['model_state_dict'])
-    model.load_state_dict(checkpoint)
+    model.load_state_dict(checkpoint, strict = non_strict_load)
 
     if optimizer:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])

@@ -16,7 +16,7 @@ from transformers import AdamW, Trainer
 
 from src.model import ColBERT, SparseColBERT
 from src.parameters import DEVICE, SAVED_CHECKPOINTS
-from src.utils import batch, print_message, save_checkpoint
+from src.utils import batch, print_message, save_checkpoint, load_checkpoint
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
@@ -204,7 +204,10 @@ def train(args, training_args):
             use_nonneg=args.use_nonneg,
             similarity_metric=args.similarity,
         )
-
+    if not args.original_checkpoint == None:
+        non_strict_load = False
+        checkpoint = load_checkpoint(args.original_checkpoint, colbert, non_strict_load = non_strict_load)
+        
     train_dataset = TrainDatasetforTPU(args.triples, args.query_maxlen, args.doc_maxlen, numins=args.training_ins_num)
     trainer = Trainer(
         model=colbert,

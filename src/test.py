@@ -46,6 +46,7 @@ def main():
         "--dont_normalize_sparse", dest="normalize_sparse", action="store_false"
     )
     parser.add_argument("--use_nonneg", action="store_true")
+    parser.add_argument("--use_ortho", action="store_true")
 
     args = parser.parse_args()
     args.input_arguments = args
