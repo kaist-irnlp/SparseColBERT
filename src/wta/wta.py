@@ -58,6 +58,7 @@ class WTAModel(nn.Module):
         boost_strength = self.hparams.model.boost_strength
         boost_strength_factor = self.hparams.model.boost_strength_factor
         input_size = self.hparams.model.dense_size
+        use_nonneg = self.hparams.model.use_nonneg
 
         # build pre-sparse
         self.pre_sparse = nn.Sequential()
@@ -67,7 +68,7 @@ class WTAModel(nn.Module):
             if normalize_weights:
                 linear.apply(normalize_sparse_weights)
         self.pre_sparse.add_module(f"linear", linear)
-        if self.hparams.model.use_nonneg:  # minmax norm
+        if use_nonneg:  # minmax norm
             self.pre_sparse.add_module(f"minmax", MinMaxLayer())
 
         # build sparse
