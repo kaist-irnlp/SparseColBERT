@@ -62,7 +62,7 @@ class TrainDataset(IterableDataset):
 
 
 class TrainDatasetforTPU(Dataset):
-    def __init__(self, data_file, query_maxlen, doc_maxlen, numins):
+    def __init__(self, data_file, query_maxlen, doc_maxlen, numins, startidx):
         print_message("#> Training with the triples in", data_file, "...\n\n")
         self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         self.reader = open(data_file, mode="r", encoding="utf-8")
@@ -71,6 +71,9 @@ class TrainDatasetforTPU(Dataset):
         self.skiplist = {w: True for w in string.punctuation}
         self.numins = numins
         #self.data = self._getdata(numins)
+        if not startidx == None:
+            print("Start from: ", startidx)
+            self._initalize_reader_from_startindex(startidx)
 
     def __len__(self):
         return self.numins
@@ -78,6 +81,10 @@ class TrainDatasetforTPU(Dataset):
 
     def _getdata(self, numins):
         return [self.reader.readline().split("\t") for _ in range(numins)]
+    
+    def _initalize_reader_from_startindex(self, start_index):
+        for _ in range(start_index):
+            self.reader.readline()
 
     def _convert_raw_to_obj(self, raw_ex):
         Q, D1, D2 = raw_ex[0], raw_ex[1], raw_ex[2]
@@ -208,7 +215,13 @@ def train(args, training_args):
         non_strict_load = False
         checkpoint = load_checkpoint(args.original_checkpoint, colbert, non_strict_load = non_strict_load)
         
-    train_dataset = TrainDatasetforTPU(args.triples, args.query_maxlen, args.doc_maxlen, numins=args.training_ins_num)
+    train_dataset = TrainDatasetforTPU(
+        args.triples, 
+        args.query_maxlen, 
+        args.doc_maxlen, 
+        numins=args.training_ins_num,
+        startidx = args.training_ins_start_from,
+    )
     trainer = Trainer(
         model=colbert,
         args=training_args,
