@@ -1,7 +1,7 @@
 import torch
 import os
 
-DEVICE = torch.device("cuda")
+DEVICE = os.environ.get('DEVICE', "cuda")
 #DEVICE = None
 
 DEFAULT_DATA_DIR = "./data_download/"
