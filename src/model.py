@@ -1,3 +1,4 @@
+from src.wta.nupic.modules.k_winners import KWinners
 from torch._C import dtype
 from .wta import WTAModel
 import string
@@ -155,17 +156,29 @@ class SparseColBERT(ColBERT):
 
             # doc WTA
             k_doc = 0.1
-            doc_params = wta_params.clone()
-            doc_params.model.k = k_doc
-            doc_params.model.input_size = n
-            self.sparse_doc = WTAModel(doc_params)
+            self.sparse_doc = KWinners(
+                n=n,
+                percent_on=k_doc,
+                k_inference_factor=k_inference_factor,
+                boost_strength=wta_params.model.boost_strength,
+                boost_strength_factor=wta_params.model.boost_strength_factor,
+                break_ties=True,
+                relu=False,
+                inplace=False,
+            )
 
             # query WTA
             k_query = 0.02
-            query_params = wta_params.clone()
-            query_params.model.k = k_query
-            query_params.model.input_size = n
-            self.sparse_query = WTAModel(query_params)
+            self.sparse_query = KWinners(
+                n=n,
+                percent_on=k_query,
+                k_inference_factor=k_inference_factor,
+                boost_strength=wta_params.model.boost_strength,
+                boost_strength_factor=wta_params.model.boost_strength_factor,
+                break_ties=True,
+                relu=False,
+                inplace=False,
+            )
 
     def forward(
         self,
