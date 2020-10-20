@@ -261,8 +261,6 @@ class SparseColBERT(ColBERT):
                 if self.static_out_k:
                     if is_query:
                         t_sparse = self.sparse_query(t_sparse.unsqueeze(0))
-                        print(t_sparse.shape)
-                        print(t_sparse.nonzero())
                     else:
                         t_sparse = self.sparse_doc(t_sparse.unsqueeze(0))
                 T_sparse.append(t_sparse.squeeze())
