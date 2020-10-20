@@ -57,7 +57,7 @@ class WTAModel(nn.Module):
         k_inference_factor = self.hparams.model.k_inference_factor
         boost_strength = self.hparams.model.boost_strength
         boost_strength_factor = self.hparams.model.boost_strength_factor
-        input_size = self.hparams.model.dense_size
+        input_size = self.hparams.model.input_size
         use_nonneg = self.hparams.model.use_nonneg
 
         # build pre-sparse
