@@ -260,6 +260,8 @@ class SparseColBERT(ColBERT):
                 t_sparse = torch.max(self.sparse(t), dim=0).values
                 if query_sparse == True:
                     t_sparse = self.sparse_query(t_sparse)
+                    print(t_sparse.shape)
+                    print(t_sparse.nonzero())
                 elif doc_sparse == True:
                     t_sparse = self.sparse_doc(t_sparse)
                 T_sparse.append(t_sparse)
