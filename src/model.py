@@ -258,12 +258,13 @@ class SparseColBERT(ColBERT):
         if k_mat is None:  # static k
             for t in torch.unbind(T):
                 t_sparse = torch.max(self.sparse(t), dim=0).values
-                if is_query:
-                    t_sparse = self.sparse_query(t_sparse)
-                    print(t_sparse.shape)
-                    print(t_sparse.nonzero())
-                else:
-                    t_sparse = self.sparse_doc(t_sparse)
+                if self.static_out_k:
+                    if is_query:
+                        t_sparse = self.sparse_query(t_sparse)
+                        print(t_sparse.shape)
+                        print(t_sparse.nonzero())
+                    else:
+                        t_sparse = self.sparse_doc(t_sparse)
                 T_sparse.append(t_sparse)
         else:  # dynamic k
             for t, k_vec in zip(torch.unbind(T), k_mat):
