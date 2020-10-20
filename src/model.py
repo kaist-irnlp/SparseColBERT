@@ -260,12 +260,12 @@ class SparseColBERT(ColBERT):
                 t_sparse = torch.max(self.sparse(t), dim=0).values
                 if self.static_out_k:
                     if is_query:
-                        t_sparse = self.sparse_query(t_sparse)
+                        t_sparse = self.sparse_query(t_sparse.unsqueeze(0))
                         print(t_sparse.shape)
                         print(t_sparse.nonzero())
                     else:
-                        t_sparse = self.sparse_doc(t_sparse)
-                T_sparse.append(t_sparse)
+                        t_sparse = self.sparse_doc(t_sparse.unsqueeze(0))
+                T_sparse.append(t_sparse.squeeze())
         else:  # dynamic k
             for t, k_vec in zip(torch.unbind(T), k_mat):
                 t_sparse = torch.max(self.sparse(t, k_vec), dim=0).values
