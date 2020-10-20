@@ -210,6 +210,7 @@ def train(args, training_args):
             normalize_sparse=args.normalize_sparse,
             use_nonneg=args.use_nonneg,
             similarity_metric=args.similarity,
+            static_out_k = args.static_out_k
         )
     if not args.original_checkpoint == None:
         non_strict_load = False

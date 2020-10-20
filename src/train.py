@@ -42,6 +42,7 @@ class ModelArguments:
     training_ins_num: int = field(default=10000)
     original_checkpoint: str = field(default=None)
     training_ins_start_from: int = field(default=None)
+    static_out_k : bool = field(default = False)
 
 
 def main():

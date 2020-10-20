@@ -83,6 +83,7 @@ def load_colbert(args):
             normalize_sparse=args.normalize_sparse,
             use_nonneg=args.use_nonneg,
             similarity_metric=args.similarity,
+            static_out_k = args.static_out_k
         )
     colbert = colbert.to(DEVICE)
     checkpoint = load_checkpoint(args.checkpoint, colbert)

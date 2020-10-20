@@ -120,6 +120,7 @@ class SparseColBERT(ColBERT):
         normalize_sparse=True,
         use_nonneg=False,
         similarity_metric="cosine",
+        static_out_k = False,
     ):
         dim_not_used = 128
         super().__init__(
@@ -148,6 +149,44 @@ class SparseColBERT(ColBERT):
         self.sparse = WTAModel(wta_params)
         self.is_sparse = True
         self.criterion = nn.CrossEntropyLoss()
+        self.static_out_k = static_out_k
+        if self.static_out_k == True:
+            k_doc = 0.1
+            k_query = 0.02
+            wta_params_doc = OmegaConf.create(
+                {
+                    "model": {
+                        "n": n,
+                        "k": k_doc,
+                        "weight_sparsity": 1.0,
+                        "normalize_weights": True,
+                        "k_inference_factor": k_inference_factor,
+                        "boost_strength": 1.5,
+                        "boost_strength_factor": 0.9,
+                        "dense_size": n,
+                        "normalize_sparse": normalize_sparse,
+                        "use_nonneg": use_nonneg,
+                    },
+                }
+            )
+            wta_params_query = OmegaConf.create(
+                {
+                    "model": {
+                        "n": n,
+                        "k": k_query,
+                        "weight_sparsity": 1.0,
+                        "normalize_weights": True,
+                        "k_inference_factor": k_inference_factor,
+                        "boost_strength": 1.5,
+                        "boost_strength_factor": 0.9,
+                        "dense_size": n,
+                        "normalize_sparse": normalize_sparse,
+                        "use_nonneg": use_nonneg,
+                    },
+                }
+            )
+            self.sparse_doc = WTAModel(wta_params_doc)
+            self.sparse_query = WTAModel(wta_params_query)
 
     def forward(
         self,
@@ -192,7 +231,7 @@ class SparseColBERT(ColBERT):
         Q = self.bert(input_ids, attention_mask=attention_mask)[0]
         Q = self.linear(Q)
         Q = torch.nn.functional.normalize(Q, p=2, dim=-1)
-        return self._sparse_maxpool(Q)
+        return self._sparse_maxpool(Q, query_sparse = self.static_out_k)
 
     def doc(self, input_ids, attention_mask, mask, return_mask=False):
         # D = super().doc(docs, return_mask)
@@ -203,7 +242,7 @@ class SparseColBERT(ColBERT):
         D = D * mask.unsqueeze(2)
         D = torch.nn.functional.normalize(D, p=2, dim=-1)
 
-        D = self._sparse_maxpool(D)
+        D = self._sparse_maxpool(D, doc_sparse = self.static_out_k)
         return (D, mask) if return_mask else D
 
     def tokenize_and_query(self, queries):
@@ -219,7 +258,7 @@ class SparseColBERT(ColBERT):
         D = self._sparse_maxpool(D)
         return (D, mask) if return_mask else D
 
-    def _sparse_maxpool(self, T, k_mat=None):
+    def _sparse_maxpool(self, T, k_mat=None, query_sparse = False, doc_sparse = False):
         """
         k_mat.shape = (batch_size, num_tokens)
         """
@@ -227,6 +266,10 @@ class SparseColBERT(ColBERT):
         if k_mat is None:  # static k
             for t in torch.unbind(T):
                 t_sparse = torch.max(self.sparse(t), dim=0).values
+                if query_sparse == True:
+                    t_sparse = self.sparse_query(t_sparse)
+                elif doc_sparse == True:
+                    t_sparse = self.sparse_doc(t_sparse)
                 T_sparse.append(t_sparse)
         else:  # dynamic k
             for t, k_vec in zip(torch.unbind(T), k_mat):

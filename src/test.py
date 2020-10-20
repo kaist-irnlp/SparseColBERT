@@ -47,6 +47,7 @@ def main():
     )
     parser.add_argument("--use_nonneg", action="store_true")
     parser.add_argument("--use_ortho", action="store_true")
+    parser.add_argument("--static_out_k", action="store_true")
 
     args = parser.parse_args()
     args.input_arguments = args
