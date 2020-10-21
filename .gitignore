@@ -146,3 +146,7 @@ data_download/qrels.dev.small.tsv
 data_download/top1000.dev
 model/pytorch_model.bin
 model/pytorch_model_n8192k0.5_100000_nonneg.bin
+model/pytorch_model_n8192k0.5_100000_40000.bin
+model/pytorch_model_n8192k0.5_32000_again.bin
+model/pytorch_model_n8192k0.5_32000_fromcolbert_startfix.bin
+model/pytorch_model_n8192k0.5_400000_100000.bin
