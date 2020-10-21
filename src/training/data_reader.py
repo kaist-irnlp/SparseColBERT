@@ -16,7 +16,7 @@ from transformers import AdamW, Trainer
 
 from src.model import ColBERT, SparseColBERT
 from src.parameters import DEVICE, SAVED_CHECKPOINTS
-from src.utils import batch, print_message, save_checkpoint
+from src.utils import batch, print_message, save_checkpoint, load_checkpoint
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
@@ -53,7 +53,8 @@ class TrainDataset(IterableDataset):
             data = self.data
         else:  # in a worker process
             # split workload
-            per_worker = int(math.ceil(len(self.data) / float(worker_info.num_workers)))
+            per_worker = int(math.ceil(len(self.data) /
+                                       float(worker_info.num_workers)))
             worker_id = worker_info.id
             start = worker_id * per_worker
             end = min(start + per_worker, len(self.data))
@@ -62,7 +63,7 @@ class TrainDataset(IterableDataset):
 
 
 class TrainDatasetforTPU(Dataset):
-    def __init__(self, data_file, query_maxlen, doc_maxlen, numins):
+    def __init__(self, data_file, query_maxlen, doc_maxlen, numins, startidx):
         print_message("#> Training with the triples in", data_file, "...\n\n")
         self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         self.reader = open(data_file, mode="r", encoding="utf-8")
@@ -70,14 +71,21 @@ class TrainDatasetforTPU(Dataset):
         self.doc_maxlen = doc_maxlen
         self.skiplist = {w: True for w in string.punctuation}
         self.numins = numins
-        # self.data = self._getdata(numins)
+        if not startidx == None:
+            print("Start from: ", startidx)
+            self._initalize_reader_from_startindex(startidx)
+        self.data = self._getdata(numins)
 
     def __len__(self):
-        return self.numins
-        # return len(self.data)
+        # return self.numins
+        return len(self.data)
 
     def _getdata(self, numins):
         return [self.reader.readline().split("\t") for _ in range(numins)]
+
+    def _initalize_reader_from_startindex(self, start_index):
+        for _ in range(start_index):
+            self.reader.readline()
 
     def _convert_raw_to_obj(self, raw_ex):
         Q, D1, D2 = raw_ex[0], raw_ex[1], raw_ex[2]
@@ -141,8 +149,8 @@ class TrainDatasetforTPU(Dataset):
         return self.tokenizer.tokenize(text)
 
     def __getitem__(self, i):
-        return self._convert_raw_to_obj(self.reader.readline().split("\t"))
-        # return self._convert_raw_to_obj(self.data[i])
+        # return self._convert_raw_to_obj(self.reader.readline().split("\t"))
+        return self._convert_raw_to_obj(self.data[i])
 
 
 class TrainReader:
@@ -171,7 +179,8 @@ def manage_checkpoints(colbert, optimizer, batch_idx, output_dir):
 
     if batch_idx % 50000 == 0:
         save_checkpoint(
-            checkpoint_dir / f"{model_desc}.last.dnn", 0, batch_idx, colbert, optimizer
+            checkpoint_dir /
+            f"{model_desc}.last.dnn", 0, batch_idx, colbert, optimizer
         )
 
     if batch_idx in SAVED_CHECKPOINTS:
@@ -205,9 +214,17 @@ def train(args, training_args):
             use_ortho=args.use_ortho,
             similarity_metric=args.similarity,
         )
+    if not args.original_checkpoint == None:
+        non_strict_load = False
+        checkpoint = load_checkpoint(
+            args.original_checkpoint, colbert, non_strict_load=non_strict_load)
 
     train_dataset = TrainDatasetforTPU(
-        args.triples, args.query_maxlen, args.doc_maxlen, numins=args.training_ins_num
+        args.triples,
+        args.query_maxlen,
+        args.doc_maxlen,
+        numins=args.training_ins_num,
+        startidx=args.training_ins_start_from,
     )
     trainer = Trainer(
         model=colbert,
