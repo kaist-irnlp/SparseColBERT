@@ -211,10 +211,14 @@ def train(args, training_args):
             use_nonneg=args.use_nonneg,
             similarity_metric=args.similarity,
         )
-    if not args.original_checkpoint == None:
+    # if not args.original_checkpoint == None:
+    #     non_strict_load = False
+    #     checkpoint = load_checkpoint(args.original_checkpoint, colbert, non_strict_load = non_strict_load)
+
+    if args.prev_checkpoint:
         non_strict_load = False
-        checkpoint = load_checkpoint(args.original_checkpoint, colbert, non_strict_load = non_strict_load)
-        
+        checkpoint = load_checkpoint(args.prev_checkpoint + '/pytorch_model.bin', colbert, non_strict_load = non_strict_load)
+
     train_dataset = TrainDatasetforTPU(
         args.triples, 
         args.query_maxlen, 
@@ -229,8 +233,10 @@ def train(args, training_args):
     )
 
     # Training
-    # if training_args.do_train:
-    trainer.train()
+    if args.prev_checkpoint:
+        trainer.train(args.prev_checkpoint)
+    else:
+        trainer.train()
     trainer.save_model()
 
     # colbert = colbert.to(DEVICE)
