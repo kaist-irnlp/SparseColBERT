@@ -211,9 +211,9 @@ def train(args, training_args):
             use_nonneg=args.use_nonneg,
             similarity_metric=args.similarity,
         )
-    # if not args.original_checkpoint == None:
-    #     non_strict_load = False
-    #     checkpoint = load_checkpoint(args.original_checkpoint, colbert, non_strict_load = non_strict_load)
+    if not args.original_checkpoint == None:
+        non_strict_load = False
+        checkpoint = load_checkpoint(args.original_checkpoint, colbert, non_strict_load = non_strict_load)
 
     if args.prev_checkpoint != 'None':
         non_strict_load = False
