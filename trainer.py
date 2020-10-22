@@ -671,7 +671,7 @@ class Trainer:
         # Check if continuing training from a checkpoint
         if model_path and os.path.isfile(os.path.join(model_path, "trainer_state.json")):
             self.state = TrainerState.load_from_json(os.path.join(model_path, "trainer_state.json"))
-            epochs_trained = self.state.global_step // num_update_steps_per_epoch
+            # epochs_trained = self.state.global_step // num_update_steps_per_epoch
             steps_trained_in_current_epoch = self.state.global_step % (num_update_steps_per_epoch)
 
             logger.info("  Continuing training from checkpoint, will skip to saved global_step")
@@ -837,6 +837,7 @@ class Trainer:
         else:
             assert model is self.model, f"Model {model} should be a reference to self.model"
         # Save model checkpoint
+        prev_steps = self.args.prev_steps
         checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
         if self.hp_search_backend is not None and trial is not None:
             run_id = trial.number if self.hp_search_backend == HPSearchBackend.OPTUNA else tune.get_trial_id()

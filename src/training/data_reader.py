@@ -71,9 +71,9 @@ class TrainDatasetforTPU(Dataset):
         self.skiplist = {w: True for w in string.punctuation}
         self.numins = numins
         if not startidx == None:
-            print("Start from: ", startidx)
             self._initalize_reader_from_startindex(startidx)
         self.data = self._getdata(numins)
+        print("Instance index ->", startidx, ":", startidx + len(self.data))
 
     def __len__(self):
         #return self.numins
@@ -215,7 +215,7 @@ def train(args, training_args):
     #     non_strict_load = False
     #     checkpoint = load_checkpoint(args.original_checkpoint, colbert, non_strict_load = non_strict_load)
 
-    if args.prev_checkpoint:
+    if args.prev_checkpoint != 'None':
         non_strict_load = False
         checkpoint = load_checkpoint(args.prev_checkpoint + '/pytorch_model.bin', colbert, non_strict_load = non_strict_load)
 
@@ -233,11 +233,11 @@ def train(args, training_args):
     )
 
     # Training
-    if args.prev_checkpoint:
+    if args.prev_checkpoint != 'None':
         trainer.train(args.prev_checkpoint)
     else:
         trainer.train()
-    trainer.save_model()
+    # trainer.save_model()
 
     # colbert = colbert.to(DEVICE)
     # colbert.train()

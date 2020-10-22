@@ -35,11 +35,11 @@ else:
 	src/train.py \
 	--triples triples.train.small.tsv \
   --data_dir "your data directory" \
-  --maxsteps $MAX_STEPS \
+  --max_steps $MAX_STEPS \
   --output_dir "your output directory" \
   --per_device_train_batch_size $BATCH_SIZE \
   --training_ins_num $TRAINING_INS_NUM \
-  --training_is_start_from $TRAINING_INS_START_FROM \
+  --training_ins_start_from $TRAINING_INS_START_FROM \
   --num_train_epochs 1 \
   --save_steps $SAVE_STEPS \
   --prev_checkpoint $PREV_CHECKPOINT \

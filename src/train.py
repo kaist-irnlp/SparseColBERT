@@ -23,7 +23,7 @@ class ModelArguments:
     """
 
     lr: float = field(default=3e-06)
-    maxsteps: int = field(default=400000)
+    # maxsteps: int = field(default=400000)
     bsize: int = field(default=16)
     accumsteps: int = field(default=8)
 
