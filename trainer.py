@@ -837,7 +837,6 @@ class Trainer:
         else:
             assert model is self.model, f"Model {model} should be a reference to self.model"
         # Save model checkpoint
-        prev_steps = self.args.prev_steps
         checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
         if self.hp_search_backend is not None and trial is not None:
             run_id = trial.number if self.hp_search_backend == HPSearchBackend.OPTUNA else tune.get_trial_id()
