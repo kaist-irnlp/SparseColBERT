@@ -119,6 +119,7 @@ class SparseColBERT(ColBERT):
         k_inference_factor=1.0,
         normalize_sparse=True,
         use_nonneg=False,
+        use_ortho=False,
         similarity_metric="cosine",
     ):
         dim_not_used = 128
@@ -148,6 +149,8 @@ class SparseColBERT(ColBERT):
         self.sparse = WTAModel(wta_params)
         self.is_sparse = True
         self.criterion = nn.CrossEntropyLoss()
+        self.use_nonneg = use_nonneg
+        self.use_ortho = use_ortho
 
     def forward(
         self,
