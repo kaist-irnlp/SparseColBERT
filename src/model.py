@@ -152,6 +152,9 @@ class SparseColBERT(ColBERT):
         self.use_nonneg = use_nonneg
         self.use_ortho = use_ortho
 
+    def ortho_loss(self):
+        return self.sparse.ortho_loss()
+
     def forward(
         self,
         input_Q_ids,
@@ -188,7 +191,8 @@ class SparseColBERT(ColBERT):
         loss_contrast = self.criterion(out, labels[:, 0])
 
         # ortho
-        loss_ortho = self.ortho_all([Q, D]) if self.use_ortho else 0
+        ortho_ratio = 0.01
+        loss_ortho = (self.ortho_loss() * ortho_ratio) if self.use_ortho else 0
         loss = loss_contrast + loss_ortho
         return loss, out
 

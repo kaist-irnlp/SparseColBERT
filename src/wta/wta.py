@@ -44,6 +44,15 @@ class WTAModel(nn.Module):
             features = F.normalize(features, dim=-1)
         return features
 
+    def ortho_loss(self):
+        ortho_loss = 0
+        for m_name, module in self.layers.named_modules():
+            if m_name == "linear":
+                W = module.weight
+                corr_mat = torch.matmul(W.T, W) - torch.eye(W.shape[1], device=W.device)
+                ortho_loss += torch.norm(corr_mat, p=2)
+        return ortho_loss
+
     def on_epoch_end(self):
         self.apply(update_boost_strength)
         self.apply(rezero_weights)
